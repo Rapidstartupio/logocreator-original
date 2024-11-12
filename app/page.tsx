@@ -115,7 +115,7 @@ export default function Page() {
             setGeneratedImage("");
             generateLogo();
           }}
-          className="flex h-full w-full max-w-sm flex-col bg-[#2C2C2C] text-[#F3F3F3]"
+          className="flex h-full w-full flex-col bg-[#2C2C2C] text-[#F3F3F3] md:max-w-sm"
         >
           <div className="flex-grow overflow-y-auto">
             <div className="px-8 pb-0 pt-4 md:px-6 md:pt-6">
