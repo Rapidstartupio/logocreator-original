@@ -19,6 +19,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { toast } from "@/hooks/use-toast";
+import * as RadioGroup from "@radix-ui/react-radio-group";
 import { DownloadIcon, Info, RefreshCwIcon } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
@@ -162,85 +163,62 @@ export default function Page() {
                   Layout
                   <InfoTooltip content="Select a layout for your logo" />
                 </label>
-                <div className="grid grid-cols-3 gap-3" role="radiogroup">
-                  {layouts.map((l) => (
-                    <div key={l.name} className="flex flex-col items-center">
-                      <button
-                        className={`mb-2 flex aspect-square w-full cursor-pointer items-center justify-center rounded bg-[#343434] focus:outline-none ${
-                          selectedLayout === l.name
-                            ? "border-2 border-[#F3F3F3]"
-                            : ""
-                        }`}
-                        onClick={() => setSelectedLayout(l.name)}
-                        tabIndex={0}
-                        type="button"
-                        aria-checked={selectedLayout === l.name}
-                        role="radio"
-                      >
-                        <Image
-                          src={l.icon}
-                          alt={l.name}
-                          width={96}
-                          height={96}
-                          style={{ objectFit: "contain" }}
-                        />
-                      </button>
-                      <span
-                        className={`text-xs ${
-                          selectedLayout === l.name
-                            ? "text-white"
-                            : "text-[#6F6F6F]"
-                        }`}
-                      >
-                        {l.name}
-                      </span>
-                    </div>
+
+                <RadioGroup.Root
+                  value={selectedLayout}
+                  onValueChange={setSelectedLayout}
+                  className="grid grid-cols-3 gap-3"
+                >
+                  {layouts.map((layout) => (
+                    <RadioGroup.Item
+                      value={layout.name}
+                      key={layout.name}
+                      className="group text-[#6F6F6F] focus-visible:outline-none data-[state=checked]:text-white"
+                    >
+                      <Image
+                        src={layout.icon}
+                        alt={layout.name}
+                        width={96}
+                        height={96}
+                        className="w-full rounded-md border border-transparent group-focus-visible:outline group-focus-visible:outline-offset-2 group-focus-visible:outline-gray-400 group-data-[state=checked]:border-white"
+                      />
+
+                      <span className="text-xs">{layout.name}</span>
+                    </RadioGroup.Item>
                   ))}
-                </div>
+                </RadioGroup.Root>
               </div>
+
               {/* Logo Style Section */}
               <div className="mb-6">
                 <label className="mb-2 flex items-center text-xs font-bold uppercase text-[#6F6F6F]">
                   STYLE
                   <InfoTooltip content="Choose a style for your logo" />
                 </label>
-                <div className="grid grid-cols-3 gap-3" role="radiogroup">
-                  {logoStyles.map((style) => (
-                    <div
-                      key={style.name}
-                      className="flex flex-col items-center"
+
+                <RadioGroup.Root
+                  value={selectedStyle}
+                  onValueChange={setSelectedStyle}
+                  className="grid grid-cols-3 gap-3"
+                >
+                  {logoStyles.map((logoStyle) => (
+                    <RadioGroup.Item
+                      value={logoStyle.name}
+                      key={logoStyle.name}
+                      className="group text-[#6F6F6F] focus-visible:outline-none data-[state=checked]:text-white"
                     >
-                      <div
-                        className={`mb-1 flex aspect-square w-full cursor-pointer items-center justify-center rounded bg-[#343434] ${
-                          selectedStyle === style.name
-                            ? "border-2 border-[#F3F3F3]"
-                            : ""
-                        }`}
-                        onClick={() => setSelectedStyle(style.name)}
-                        tabIndex={0}
-                        aria-checked={selectedStyle === style.name}
-                        role="radio"
-                      >
-                        <Image
-                          src={style.icon}
-                          alt={style.name}
-                          width={96}
-                          height={96}
-                          style={{ objectFit: "contain" }}
-                        />
-                      </div>
-                      <span
-                        className={`text-xs ${
-                          selectedStyle === style.name
-                            ? "text-white"
-                            : "text-[#6F6F6F]"
-                        }`}
-                      >
-                        {style.name}
-                      </span>
-                    </div>
+                      <Image
+                        src={logoStyle.icon}
+                        alt={logoStyle.name}
+                        width={96}
+                        height={96}
+                        className="w-full rounded-md border border-transparent group-focus-visible:outline group-focus-visible:outline-offset-2 group-focus-visible:outline-gray-400 group-data-[state=checked]:border-white"
+                      />
+
+                      <span className="text-xs">{logoStyle.name}</span>
+                    </RadioGroup.Item>
                   ))}
-                </div>
+                </RadioGroup.Root>
               </div>
               {/* Color Picker Section */}
               <div className="mb-[25px] flex flex-col md:flex-row md:space-x-3">
@@ -356,8 +334,8 @@ export default function Page() {
         <div className="flex w-full flex-col pt-12 md:pt-0">
           <Header className="hidden md:block" />{" "}
           {/* Show header on larger screens */}
-          <div className="relative flex flex-grow items-center justify-center">
-            <div className="relative aspect-square w-full max-w-lg px-4">
+          <div className="relative flex flex-grow items-center justify-center px-4">
+            <div className="relative aspect-square w-full max-w-lg">
               {generatedImage ? (
                 <>
                   <Image

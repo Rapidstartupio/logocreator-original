@@ -148,7 +148,7 @@ export async function POST(req: Request) {
       model: "black-forest-labs/FLUX.1.1-pro",
       width: 512,
       height: 512,
-      steps: 3,
+      steps: 4,
       // @ts-expect-error - this is not typed in the API
       response_format: "base64",
     });
