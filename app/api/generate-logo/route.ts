@@ -61,36 +61,86 @@ export async function POST(req: Request) {
     }
   }
 
-  const prompt = dedent`Design a professional, unique, and memorable logo for a company that effectively represents the brand's identity and values. The logo should be versatile for use across various mediums and sizes, maintaining clarity and impact in both digital and print formats.
+  const flashyStyle = dedent`
+  The design should be flashy, attention grabbing, bold, and eye-catching. 
+  
+  Use vibrant colors with metallic, shiny, and glossy accents. It should feel futuristic.
+  
+  Feel free to add in neon colors to make the logo pop.`;
 
-  Here are the details:
+  const techStyle = dedent`
+  The design should be similar to a tech company logo. Minimalist, clean, and sleek.
 
-  Company name: ${data.companyName}
-  Style: ${data.selectedStyle}
-  Primary color: ${data.selectedPrimaryColor} 
-  Background color: ${data.selectedBackgroundColor}
-
-  ${
-    data.additionalInfo
-      ? `Here's some additional information to help guide your design: ${data.additionalInfo}`
-      : ""
-  }
-  ${
-    data.selectedLayout === "Solo"
-      ? `Focus solely on creating a minimalist icon or symbol without any accompanying text whatsoever. COMPANY NAME NOT INCLUDED. Just return the logomark (not a logotype). The text ${data.companyName} should not be in the image.`
-      : ""
-  }
-  ${
-    data.selectedLayout === "Side"
-      ? `Have the company name placed to the right of logo you generate. Ensure the text and icon are well-aligned for visual balance.`
-      : ""
-  }
-  ${
-    data.selectedLayout === "Stack"
-      ? `Have the company name positioned directly underneath the icon or symbol. Ensure vertical alignment with equal emphasis on both text and symbol for a balanced, clean layout.`
-      : ""
-  }
+  The color palette should be neutral with subtle accents.
+  
+  Simple geometric shapes, clean lines, shadows, and flat.
   `;
+
+  const modernStyle = dedent`
+  The design should be modern and forward-thinking while embracing flat design.
+
+  Use geometric shapes and clean lines to create a balanced aesthetic.
+
+  The colors should be natural with subtle accents.
+  
+  Feel free to use strategic negative space to create visual interest.`;
+
+  const playfulStyle = dedent`
+  The design should be playful, lighthearted, and lively. 
+  
+  Feel free to use bright bold colors with rounded shapes.`;
+
+  const abstractStyle = dedent`
+  The design should be abstract, artistic, and creative.
+  
+  Use unique shapes, patterns, and textures to create a visually interesting and wild logo.`;
+
+  const minimalStyle = dedent`
+  The design should be minimal and simple. It should be timeless and versatile.
+  
+  The logo only has a single color and makes use of negative space. Light, soft, and subtle. 
+  
+  Use flat design with minimal details.`;
+
+  const styleLookup: Record<string, string> = {
+    Flashy: flashyStyle,
+    Tech: techStyle,
+    Modern: modernStyle,
+    Playful: playfulStyle,
+    Abstract: abstractStyle,
+    Minimal: minimalStyle,
+  };
+
+  const soloLayout = dedent`
+  Do not include any text in the logo`;
+
+  const sideLayout = dedent`
+  Write the company name to the right of the logo. Keep the logo on the left. Ensure the text and icon are well-aligned for visual balance.`;
+
+  const stackLayout = dedent`
+  Write the company name directly underneath the logo. Keep the logo on top. Ensure vertical alignment with equal emphasis on both text and symbol for a balanced, clean layout.`;
+
+  const layoutLookup: Record<string, string> = {
+    Solo: soloLayout,
+    Side: sideLayout,
+    Stack: stackLayout,
+  };
+
+  const prompt = dedent`A single logo that is high-quality made for both digital and print media.  
+  
+  The logo should look like it was made by an award winning professional design studio. It should only contain a few vector shapes.
+
+  ${layoutLookup[data.selectedLayout]}
+
+  ${styleLookup[data.selectedStyle]}
+  
+  Use ${data.selectedPrimaryColor.toLowerCase()} as the main primary color. The background should be ${data.selectedBackgroundColor.toLowerCase()}.
+
+  Here's some additional information to help guide your design:
+
+  The company name is ${data.companyName}.
+
+  ${data.additionalInfo ? data.additionalInfo : ""}`;
 
   try {
     const response = await client.images.create({
