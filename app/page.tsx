@@ -2,92 +2,71 @@
 
 import Spinner from "@/app/components/Spinner";
 import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
+import { Textarea } from "@/app/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ChevronDown, DownloadIcon, Info, RefreshCwIcon } from "lucide-react";
-import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
-import Header from "./components/Header";
-import LogoPlaceholder from "./components/LogoPlaceholder";
-import Footer from "./components/footer";
 import { toast } from "@/hooks/use-toast";
+import { DownloadIcon, Info, RefreshCwIcon } from "lucide-react";
+import Image from "next/image";
+import { useState } from "react";
+import Header from "./components/Header";
+import Footer from "./components/footer";
+
+const layouts = [
+  { name: "Solo", icon: "/solo.svg" },
+  { name: "Side", icon: "/side.svg" },
+  { name: "Stack", icon: "/stack.svg" },
+];
+
+const logoStyles = [
+  { name: "Flashy", icon: "/flashy.svg" },
+  { name: "Tech", icon: "/tech.svg" },
+  { name: "Modern", icon: "/modern.svg" },
+  { name: "Playful", icon: "/playful.svg" },
+  { name: "Abstract", icon: "/abstract.svg" },
+  { name: "Minimal", icon: "/minimal.svg" },
+];
+
+const primaryColors = [
+  { name: "Blue", color: "#0F6FFF" },
+  { name: "Red", color: "#FF0000" },
+  { name: "Green", color: "#00FF00" },
+  { name: "Yellow", color: "#FFFF00" },
+];
+
+const backgroundColors = [
+  { name: "Gray", color: "#CCCCCC" },
+  { name: "Black", color: "#000000" },
+  { name: "White", color: "#FFFFFF" },
+];
 
 export default function Page() {
-  const [apiKey, setApiKey] = useState("");
+  const [userAPIKey, setUserAPIKey] = useState("");
   const [companyName, setCompanyName] = useState("");
-  const [selectedLayout, setSelectedLayout] = useState("Solo");
-  const [selectedStyle, setSelectedStyle] = useState("Flashy");
-  const [selectedPrimaryColor, setSelectedPrimaryColor] = useState("Blue");
-  const [selectedBackgroundColor, setSelectedBackgroundColor] =
-    useState("Black");
+  const [selectedLayout, setSelectedLayout] = useState(layouts[0].name);
+  const [selectedStyle, setSelectedStyle] = useState(logoStyles[0].name);
+  const [selectedPrimaryColor, setSelectedPrimaryColor] = useState(
+    primaryColors[0].name,
+  );
+  const [selectedBackgroundColor, setSelectedBackgroundColor] = useState(
+    backgroundColors[0].name,
+  );
   const [additionalInfo, setAdditionalInfo] = useState("");
-
-  // Added missing state variables
-  const [showPrimaryDropdown, setShowPrimaryDropdown] =
-    useState<boolean>(false);
-  const [showBackgroundDropdown, setShowBackgroundDropdown] =
-    useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(false); // Added loading state
-
-  const primaryDropdownRef = useRef<HTMLDivElement>(null); // Added ref for primary dropdown
-  const backgroundDropdownRef = useRef<HTMLDivElement>(null); // Added ref for background dropdown
-
+  const [isLoading, setIsLoading] = useState(false);
   const [generatedImage, setGeneratedImage] = useState("");
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      // Added click outside handler
-      if (
-        primaryDropdownRef.current &&
-        !primaryDropdownRef.current.contains(event.target as Node)
-      ) {
-        setShowPrimaryDropdown(false);
-      }
-      if (
-        backgroundDropdownRef.current &&
-        !backgroundDropdownRef.current.contains(event.target as Node)
-      ) {
-        setShowBackgroundDropdown(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [primaryDropdownRef, backgroundDropdownRef]);
-
-  const primaryColors = [
-    { name: "Blue", color: "#0F6FFF" },
-    { name: "Red", color: "#FF0000" },
-    { name: "Green", color: "#00FF00" },
-    { name: "Yellow", color: "#FFFF00" },
-  ];
-
-  const backgroundColors = [
-    { name: "Gray", color: "#CCCCCC" },
-    { name: "Black", color: "#000000" },
-    { name: "White", color: "#FFFFFF" },
-  ];
-
-  const layouts = [
-    { name: "Solo", icon: "/solo.svg" },
-    { name: "Side", icon: "/side.svg" },
-    { name: "Stack", icon: "/stack.svg" },
-  ] as const;
-
-  const logoStyles = [
-    { name: "Flashy", icon: "/flashy.svg" },
-    { name: "Tech", icon: "/tech.svg" },
-    { name: "Modern", icon: "/modern.svg" },
-    { name: "Playful", icon: "/playful.svg" },
-    { name: "Abstract", icon: "/abstract.svg" },
-    { name: "Minimal", icon: "/minimal.svg" },
-  ];
 
   async function generateLogo() {
     setIsLoading(true);
@@ -95,7 +74,7 @@ export default function Page() {
     const res = await fetch("/api/generate-logo", {
       method: "POST",
       body: JSON.stringify({
-        apiKey,
+        userAPIKey,
         companyName,
         selectedLayout,
         selectedStyle,
@@ -105,15 +84,21 @@ export default function Page() {
       }),
     });
 
-    if (res.status === 429) {
-      toast({
-        variant: "destructive",
-        title: "No requests left!",
-        description: "Please add your own API key or try again in 24h.",
-      });
-    } else {
+    if (res.ok) {
       const json = await res.json();
       setGeneratedImage(`data:image/png;base64,${json.b64_json}`);
+    } else if (res.headers.get("Content-Type") === "text/plain") {
+      toast({
+        variant: "destructive",
+        title: res.statusText,
+        description: await res.text(),
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Whoops!",
+        description: `There was a problem processing your request: ${res.statusText}`,
+      });
     }
 
     setIsLoading(false);
@@ -121,7 +106,8 @@ export default function Page() {
 
   return (
     <div className="flex h-screen flex-col overflow-y-auto overflow-x-hidden bg-[#343434] md:flex-row">
-      <Header className="block md:hidden" />{" "}
+      <Header className="block md:hidden" />
+
       <div className="flex w-full flex-col md:flex-row">
         <form
           onSubmit={(e) => {
@@ -129,9 +115,9 @@ export default function Page() {
             setGeneratedImage("");
             generateLogo();
           }}
-          className="sidebar flex h-full w-full flex-col bg-[#2C2C2C] text-[#F3F3F3] md:w-auto"
+          className="flex h-full w-full max-w-sm flex-col bg-[#2C2C2C] text-[#F3F3F3]"
         >
-          <div className={`flex-grow overflow-y-auto`}>
+          <div className="flex-grow overflow-y-auto">
             <div className="px-8 pb-0 pt-4 md:px-6 md:pt-6">
               {/* API Key Section */}
               <div className="mb-6">
@@ -144,14 +130,11 @@ export default function Page() {
                     [OPTIONAL]
                   </span>
                 </label>
-                <input
-                  id="api-key"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  className="h-[45px] w-full rounded border border-[#2C2C2C] bg-[#343434] px-[12.5px] text-sm text-[#F3F3F3] md:w-[315px]"
+
+                <Input
+                  value={userAPIKey}
+                  onChange={(e) => setUserAPIKey(e.target.value)}
                   placeholder="API Key"
-                  aria-label="API Key"
-                  tabIndex={0}
                 />
               </div>
               {/* Divider Line */}
@@ -164,17 +147,15 @@ export default function Page() {
                 >
                   Company Name
                 </label>
-                <input
-                  id="company-name"
+
+                <Input
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
-                  className="h-[43.75px] w-full rounded bg-[#343434] px-[15px] text-sm text-[#F3F3F3] md:w-[315px]"
                   placeholder="Amazon"
-                  aria-label="Company Name"
-                  tabIndex={0}
                   required
                 />
               </div>
+
               {/* Layout Section */}
               <div className="mb-6">
                 <label className="mb-2 flex items-center text-xs font-bold uppercase text-[#6F6F6F]">
@@ -185,7 +166,7 @@ export default function Page() {
                   {layouts.map((l) => (
                     <div key={l.name} className="flex flex-col items-center">
                       <button
-                        className={`mb-2 flex h-[96px] w-[96px] cursor-pointer items-center justify-center rounded bg-[#343434] focus:outline-none ${
+                        className={`mb-2 flex aspect-square w-full cursor-pointer items-center justify-center rounded bg-[#343434] focus:outline-none ${
                           selectedLayout === l.name
                             ? "border-2 border-[#F3F3F3]"
                             : ""
@@ -230,7 +211,7 @@ export default function Page() {
                       className="flex flex-col items-center"
                     >
                       <div
-                        className={`mb-1 flex h-[96px] w-[96px] cursor-pointer items-center justify-center rounded bg-[#343434] ${
+                        className={`mb-1 flex aspect-square w-full cursor-pointer items-center justify-center rounded bg-[#343434] ${
                           selectedStyle === style.name
                             ? "border-2 border-[#F3F3F3]"
                             : ""
@@ -264,137 +245,63 @@ export default function Page() {
               {/* Color Picker Section */}
               <div className="mb-[25px] flex flex-col md:flex-row md:space-x-3">
                 <div className="mb-4 flex-1 md:mb-0">
-                  <label
-                    htmlFor="primary-color"
-                    className="mb-1 block text-xs font-bold uppercase text-[#6F6F6F]"
-                  >
+                  <label className="mb-1 block text-xs font-bold uppercase text-[#6F6F6F]">
                     Primary
-                    {/* <InfoTooltip content="Select a primary color" /> */}
                   </label>
-                  <div className="relative" ref={primaryDropdownRef}>
-                    <div
-                      id="primary-color"
-                      className="flex h-[43.75px] w-full cursor-pointer items-center rounded bg-[#343434] px-2 md:w-[150px]"
-                      onClick={() =>
-                        setShowPrimaryDropdown((prev: boolean) => !prev)
-                      }
-                      tabIndex={0}
-                      onKeyDown={(e) =>
-                        e.key === "Enter" &&
-                        setShowPrimaryDropdown((prev: boolean) => !prev)
-                      }
-                      aria-expanded={showPrimaryDropdown}
-                      aria-controls="primary-color-dropdown"
-                    >
-                      <div
-                        className="mr-2 h-4 w-4 rounded-sm"
-                        style={{
-                          backgroundColor: primaryColors.find(
-                            (color) => color.name === selectedPrimaryColor,
-                          )?.color,
-                        }}
-                      ></div>
-                      <span className="flex-grow text-sm text-[#F3F3F3]">
-                        {selectedPrimaryColor}
-                      </span>
-                      <ChevronDown size={20} className="text-[#F3F3F3]" />
-                    </div>
-                    {showPrimaryDropdown && (
-                      <div
-                        id="primary-color-dropdown"
-                        className="absolute z-10 mt-1 w-full rounded bg-[#343434] shadow-lg"
-                      >
+
+                  <Select
+                    value={selectedPrimaryColor}
+                    onValueChange={setSelectedPrimaryColor}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a fruit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
                         {primaryColors.map((color) => (
-                          <div
-                            key={color.name}
-                            className="flex cursor-pointer items-center px-2 py-1 hover:bg-[#2C2C2C]"
-                            onClick={() => {
-                              setSelectedPrimaryColor(color.name);
-                              setShowPrimaryDropdown(false);
-                            }}
-                            tabIndex={0}
-                            onKeyDown={(e) =>
-                              e.key === "Enter" &&
-                              setSelectedPrimaryColor(color.name)
-                            }
-                          >
-                            <div
-                              className="mr-2 h-4 w-4 rounded-sm"
-                              style={{ backgroundColor: color.color }}
-                            ></div>
-                            <span className="text-sm text-[#F3F3F3]">
+                          <SelectItem key={color.color} value={color.name}>
+                            <span className="flex items-center">
+                              <span
+                                style={{ backgroundColor: color.color }}
+                                className="mr-2 size-4 rounded-sm bg-white"
+                              />
                               {color.name}
                             </span>
-                          </div>
+                          </SelectItem>
                         ))}
-                      </div>
-                    )}
-                  </div>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
                 </div>
+
                 <div className="flex-1">
                   <label className="mb-1 block items-center text-xs font-bold uppercase text-[#6F6F6F]">
                     Background
-                    {/* <InfoTooltip content="Select a background color" /> */}
                   </label>
-                  <div className="relative" ref={backgroundDropdownRef}>
-                    <div
-                      id="background-color"
-                      className="flex h-[43.75px] w-full cursor-pointer items-center rounded bg-[#343434] px-2 md:w-[150px]"
-                      onClick={() =>
-                        setShowBackgroundDropdown((prev: boolean) => !prev)
-                      }
-                      tabIndex={0}
-                      onKeyDown={(e) =>
-                        e.key === "Enter" &&
-                        setShowBackgroundDropdown((prev: boolean) => !prev)
-                      }
-                      aria-expanded={showBackgroundDropdown}
-                      aria-controls="background-color-dropdown"
-                    >
-                      <div
-                        className="mr-2 h-4 w-4 rounded-sm"
-                        style={{
-                          backgroundColor: backgroundColors.find(
-                            (color) => color.name === selectedBackgroundColor,
-                          )?.color,
-                        }}
-                      ></div>
-                      <span className="flex-grow text-sm text-[#F3F3F3]">
-                        {selectedBackgroundColor}
-                      </span>
-                      <ChevronDown size={20} className="text-[#F3F3F3]" />
-                    </div>
-                    {showBackgroundDropdown && (
-                      <div
-                        id="background-color-dropdown"
-                        className="absolute z-10 mt-1 w-full rounded bg-[#343434] shadow-lg"
-                      >
+
+                  <Select
+                    value={selectedBackgroundColor}
+                    onValueChange={setSelectedBackgroundColor}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a fruit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
                         {backgroundColors.map((color) => (
-                          <div
-                            key={color.name}
-                            className="flex cursor-pointer items-center px-2 py-1 hover:bg-[#2C2C2C]"
-                            onClick={() => {
-                              setSelectedBackgroundColor(color.name);
-                              setShowBackgroundDropdown(false);
-                            }}
-                            tabIndex={0}
-                            onKeyDown={(e) =>
-                              e.key === "Enter" &&
-                              setSelectedBackgroundColor(color.name)
-                            }
-                          >
-                            <div
-                              className="mr-2 h-4 w-4 rounded-sm"
-                              style={{ backgroundColor: color.color }}
-                            ></div>
-                            <span className="text-sm text-[#F3F3F3]">
+                          <SelectItem key={color.color} value={color.name}>
+                            <span className="flex items-center">
+                              <span
+                                style={{ backgroundColor: color.color }}
+                                className="mr-2 size-4 rounded-sm bg-white"
+                              />
                               {color.name}
                             </span>
-                          </div>
+                          </SelectItem>
                         ))}
-                      </div>
-                    )}
-                  </div>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               {/* Additional Options Section */}
@@ -409,14 +316,10 @@ export default function Page() {
                       Additional Info
                       <InfoTooltip content="Provide any additional information about your logo" />
                     </label>
-                    <textarea
-                      id="additional-info"
+                    <Textarea
                       value={additionalInfo}
                       onChange={(e) => setAdditionalInfo(e.target.value)}
-                      className="h-[67.5px] w-full rounded bg-[#343434] p-3 text-sm text-[#F3F3F3] md:w-[315px]"
                       placeholder="Enter additional information"
-                      aria-label="Additional Info"
-                      tabIndex={0}
                     />
                   </div>
                 </div>
@@ -424,41 +327,37 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Generate Logo Button - Always visible */}
-          <div className="px-8 md:px-4">
-            <div className="py-2">
-              <button
-                className="flex w-full items-center justify-center rounded bg-[#F3F3F3] py-[12.5px] text-base font-bold text-[#2C2C2C]"
-                aria-label="Generate Logo"
-                type="submit"
-                disabled={isLoading} // Disable button while loading
-              >
-                {isLoading ? ( // Conditional rendering for loading state
-                  <div className="loader mr-2"></div> // Spinner element
-                ) : (
-                  <Image
-                    src="/generate-icon.svg"
-                    alt="Generate Icon"
-                    width={16}
-                    height={16}
-                    className="mr-2"
-                  />
-                )}
-                {isLoading ? "Loading..." : "Generate Logo"}{" "}
-                {/* Change button text */}
-              </button>
-              {/* <div className="text-center mt-1 text-xs text-[#F3F3F3]">
+          <div className="px-8 py-4 md:px-6 md:py-6">
+            <Button
+              size="lg"
+              className="w-full text-base font-bold"
+              type="submit"
+              disabled={isLoading}
+            >
+              {isLoading ? ( // Conditional rendering for loading state
+                <div className="loader mr-2"></div> // Spinner element
+              ) : (
+                <Image
+                  src="/generate-icon.svg"
+                  alt="Generate Icon"
+                  width={16}
+                  height={16}
+                  className="mr-2"
+                />
+              )}
+              {isLoading ? "Loading..." : "Generate Logo"}{" "}
+            </Button>
+            {/* <div className="text-center mt-1 text-xs text-[#F3F3F3]">
             Credits: 3
           </div> */}
-            </div>
           </div>
         </form>
 
-        <div className="flex w-full flex-col">
+        <div className="flex w-full flex-col pt-12 md:pt-0">
           <Header className="hidden md:block" />{" "}
           {/* Show header on larger screens */}
-          <div className="relative flex flex-grow items-center justify-center overflow-hidden">
-            <div className="relative aspect-square w-full max-w-lg">
+          <div className="relative flex flex-grow items-center justify-center">
+            <div className="relative aspect-square w-full max-w-lg px-4">
               {generatedImage ? (
                 <>
                   <Image
@@ -491,7 +390,13 @@ export default function Page() {
                 </>
               ) : (
                 <Spinner loading={isLoading} className="size-8 text-white">
-                  <LogoPlaceholder />
+                  <div className="flex aspect-square w-full flex-col items-center justify-center rounded-xl bg-[#2C2C2C]">
+                    <h4 className="text-center text-base leading-tight text-white">
+                      Generate your dream
+                      <br />
+                      logo in 10 seconds!
+                    </h4>
+                  </div>
                 </Spinner>
               )}
             </div>
