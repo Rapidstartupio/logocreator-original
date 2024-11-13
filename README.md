@@ -4,7 +4,7 @@
 </a>
 
 <p align="center">
-  An open source AI-powered logo generator – create professional logos in seconds with customizable styles. Powered by Together.ai & Flux!
+  An open source AI-powered logo generator – create professional logos in seconds with customizable styles. Powered by Together.ai & Flux
 </p>
 
 ## Tech stack
