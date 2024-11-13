@@ -20,7 +20,7 @@
 
 1. Clone the repo: `git clone https://github.com/Reda-Darbal/logo-maker-v2`
 2. Create a `.env` file and add your [Together AI API key](https://www.together.ai/): `TOGETHER_API_KEY=`
-3. Run `npm install` and `npm run dev` to install dependencies and run locally
+3. Run `npm install` and `npm run dev` to install dependencies and run locally.
 
 ## Future Tasks
 
