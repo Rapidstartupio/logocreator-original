@@ -312,8 +312,8 @@ export default function Page() {
                   type="submit"
                   disabled={isLoading}
                 >
-                  {isLoading ? ( // Conditional rendering for loading state
-                    <div className="loader mr-2"></div> // Spinner element
+                  {isLoading ? (
+                    <div className="loader mr-2" />
                   ) : (
                     <Image
                       src="/generate-icon.svg"
@@ -325,9 +325,6 @@ export default function Page() {
                   )}
                   {isLoading ? "Loading..." : "Generate Logo"}{" "}
                 </Button>
-                {/* <div className="text-center mt-1 text-xs text-[#F3F3F3]">
-                Credits: 3
-              </div> */}
               </div>
             </fieldset>
           </form>
