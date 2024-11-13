@@ -1,14 +1,19 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
+import {
+  SignInButton,
+  SignedIn,
+  SignedOut,
+  UserButton,
+  useUser,
+} from "@clerk/nextjs";
 
-interface HeaderProps {
-  className?: string;
-}
+export default function Header({ className }: { className: string }) {
+  const { user } = useUser();
 
-const Header: React.FC<HeaderProps> = ({ className }) => {
   return (
-    <header className={`w-full ${className}`}>
+    <header className={`relative w-full ${className}`}>
       <div className="flex items-center justify-between bg-[#343434] px-4 py-2 md:mt-4">
         {/* Logo - left on mobile, centered on larger screens */}
         <div className="flex flex-grow justify-start md:justify-center">
@@ -18,13 +23,14 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
               alt="together.ai"
               width={450}
               height={120}
-              className="w-[233px] pl-0 md:w-[350px] lg:w-[450px] lg:pl-28"
+              className="w-[233px] md:w-[350px] lg:w-[450px]"
+              priority
             />
           </Link>
         </div>
         {/* Credits Section */}
-        <div className="flex items-center space-x-2">
-          <div className="flex items-center">
+        <div className="absolute right-8 flex items-center space-x-2">
+          {/* <div className="flex items-center">
             <span className="hidden text-sm text-gray-400 lg:block">
               Credits:
             </span>
@@ -38,11 +44,17 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
             width={36}
             height={36}
             className="h-8 w-8 rounded-full border border-black bg-gray-600 md:h-9 md:w-9"
-          />
+          /> */}
+
+          <SignedOut>
+            <SignInButton mode="modal" />
+          </SignedOut>
+          <SignedIn>
+            <p>Remaining credits: {`${user?.unsafeMetadata.remaining ?? 3}`}</p>
+            <UserButton />
+          </SignedIn>
         </div>
       </div>
     </header>
   );
-};
-
-export default Header;
+}

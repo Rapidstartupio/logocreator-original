@@ -1,9 +1,9 @@
+import { clerkClient, currentUser } from "@clerk/nextjs/server";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
 import dedent from "dedent";
 import Together from "together-ai";
 import { z } from "zod";
-import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
-import { headers } from "next/headers";
 
 let ratelimit: Ratelimit | undefined;
 
@@ -12,13 +12,19 @@ if (process.env.UPSTASH_REDIS_REST_URL) {
   ratelimit = new Ratelimit({
     redis: Redis.fromEnv(),
     // Allow 100 requests per day (~5-10 prompts)
-    limiter: Ratelimit.fixedWindow(100, "1440 m"),
+    limiter: Ratelimit.fixedWindow(3, "30 d"),
     analytics: true,
     prefix: "logocreator",
   });
 }
 
 export async function POST(req: Request) {
+  const user = await currentUser();
+
+  if (!user) {
+    return new Response("", { status: 404 });
+  }
+
   const json = await req.json();
   const data = z
     .object({
@@ -49,15 +55,22 @@ export async function POST(req: Request) {
   }
 
   if (ratelimit) {
-    const identifier = getIPAddress();
-    console.log(identifier);
+    const identifier = user.id;
+    const { success, remaining } = await ratelimit.limit(identifier);
+    (await clerkClient()).users.updateUserMetadata(user.id, {
+      unsafeMetadata: {
+        remaining,
+      },
+    });
 
-    const { success } = await ratelimit.limit(identifier);
     if (!success) {
-      return new Response("Please add your own API key or try again in 24h.", {
-        status: 429,
-        headers: { "Content-Type": "text/plain" },
-      });
+      return new Response(
+        "You've used up all your credits. Enter your own Together API Key to generate more images.",
+        {
+          status: 429,
+          headers: { "Content-Type": "text/plain" },
+        },
+      );
     }
   }
 
@@ -174,14 +187,3 @@ export async function POST(req: Request) {
 }
 
 export const runtime = "edge";
-
-function getIPAddress() {
-  const FALLBACK_IP_ADDRESS = "0.0.0.0";
-  const forwardedFor = headers().get("x-forwarded-for");
-
-  if (forwardedFor) {
-    return forwardedFor.split(",")[0] ?? FALLBACK_IP_ADDRESS;
-  }
-
-  return headers().get("x-real-ip") ?? FALLBACK_IP_ADDRESS;
-}
