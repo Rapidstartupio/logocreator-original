@@ -167,7 +167,7 @@ export async function POST(req: Request) {
     });
     return Response.json(response.data[0], { status: 200 });
   } catch (error) {
-    const data = z
+    const invalidApiKey = z
       .object({
         error: z.object({
           error: z.object({ code: z.literal("invalid_api_key") }),
@@ -175,14 +175,32 @@ export async function POST(req: Request) {
       })
       .safeParse(error);
 
-    if (data.success) {
+    if (invalidApiKey.success) {
       return new Response("Your API key is invalid.", {
         status: 401,
         headers: { "Content-Type": "text/plain" },
       });
-    } else {
-      throw error;
     }
+
+    const modelBlocked = z
+      .object({
+        error: z.object({
+          error: z.object({ type: z.literal("request_blocked") }),
+        }),
+      })
+      .safeParse(error);
+
+    if (modelBlocked.success) {
+      return new Response(
+        "Your Together AI account needs a credit card on file to use this app. Please add a credit card at: https://api.together.xyz/settings/billing",
+        {
+          status: 403,
+          headers: { "Content-Type": "text/plain" },
+        },
+      );
+    }
+
+    throw error;
   }
 }
 
