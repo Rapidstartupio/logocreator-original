@@ -55,7 +55,7 @@ export default function Header({ className }: { className: string }) {
             />
           </SignedOut>
           <SignedIn>
-            <p>Remaining credits: {`${user?.unsafeMetadata.remaining ?? 3}`}</p>
+            <p>Credits: {`${user?.unsafeMetadata.remaining ?? 3}`}</p>
             <UserButton />
           </SignedIn>
         </div>
