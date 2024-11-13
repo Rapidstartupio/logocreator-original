@@ -8,6 +8,7 @@ import {
   UserButton,
   useUser,
 } from "@clerk/nextjs";
+import { domain } from "@/app/lib/domain";
 
 export default function Header({ className }: { className: string }) {
   const { user } = useUser();
@@ -47,7 +48,11 @@ export default function Header({ className }: { className: string }) {
           /> */}
 
           <SignedOut>
-            <SignInButton mode="modal" />
+            <SignInButton
+              mode="modal"
+              signUpForceRedirectUrl={domain}
+              forceRedirectUrl={domain}
+            />
           </SignedOut>
           <SignedIn>
             <p>Remaining credits: {`${user?.unsafeMetadata.remaining ?? 3}`}</p>

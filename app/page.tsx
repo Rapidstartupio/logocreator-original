@@ -27,6 +27,7 @@ import Image from "next/image";
 import { useState } from "react";
 import Header from "./components/Header";
 import Footer from "./components/footer";
+import { domain } from "@/app/lib/domain";
 
 const layouts = [
   { name: "Solo", icon: "/solo.svg" },
@@ -343,7 +344,11 @@ export default function Page() {
                 </p>
 
                 <div className="mt-4">
-                  <SignInButton mode="modal">
+                  <SignInButton
+                    mode="modal"
+                    signUpForceRedirectUrl={domain}
+                    forceRedirectUrl={domain}
+                  >
                     <Button
                       size="lg"
                       className="w-full text-base font-semibold"
