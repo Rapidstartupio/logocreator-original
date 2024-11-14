@@ -42,10 +42,7 @@ export async function POST(req: Request) {
     ratelimit = new Ratelimit({
       redis: Redis.fromEnv(),
       // Allow 3 requests per 2 months on prod
-      limiter: Ratelimit.fixedWindow(
-        process.env.NODE_ENV === "production" ? 3 : 1000,
-        "60 d",
-      ),
+      limiter: Ratelimit.fixedWindow(3, "60 d"),
       analytics: true,
       prefix: "logocreator",
     });
