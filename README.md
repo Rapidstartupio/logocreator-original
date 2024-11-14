@@ -27,6 +27,7 @@
 - [ ] Create a dashboard with a user's logo history
 - [ ] Support SVG exports instead of just PNG
 - [ ] Add support for additional styles
-- [ ] Add a dropdown for image size (up to 1024x1024)
+- [ ] Add a dropdown for image size (can do up to 1440x1440)
+- [ ] Show approximate price when using your own Together AI key
 - [ ] Allow the ability to upload a reference logo (use vision model to read it)
 - [ ] Redesign popular brand’s logos with my logo maker and have it in a showcase

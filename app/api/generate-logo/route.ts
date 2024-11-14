@@ -117,8 +117,8 @@ export async function POST(req: Request) {
     const response = await client.images.create({
       prompt,
       model: "black-forest-labs/FLUX.1.1-pro",
-      width: 1024,
-      height: 1024,
+      width: 768,
+      height: 768,
       steps: 4,
       // @ts-expect-error - this is not typed in the API
       response_format: "base64",
