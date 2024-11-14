@@ -4,33 +4,36 @@
 </a>
 
 <p align="center">
-  An open source AI-powered logo generator – create professional logos in seconds with customizable styles. Powered by Together.ai & Flux
+  An open source logo generator – create professional logos in seconds with customizable styles. Powered by Together.ai & Flux.
 </p>
 
 ## Tech stack
 
-- [Together AI](https://www.together.ai/) for AI infrastructure
-- [Flux](https://api.together.ai/signin?redirectUrl=/playground/image/black-forest-labs/FLUX.1.1-pro) for logo generation
-- [Next.js](https://nextjs.org/) with TypeScript
-- [Tailwind CSS](https://tailwindcss.com/) for styling
-- [Shadcn/ui](https://ui.shadcn.com/) for UI components
-- React 18 with hooks
+- [Flux Pro 1.1](https://api.together.ai/signin?redirectUrl=/playground/image/black-forest-labs/FLUX.1.1-pro) on [Together AI](https://www.together.ai/) for logo generation
+- [Next.js](https://nextjs.org/) with TypeScript for the app framework
+- [Shadcn](https://ui.shadcn.com/) for UI components & [Tailwind](https://tailwindcss.com/) for styling
+- [Upstash Redis](https://upstash.com/) for rate limiting
+- [Clerk](https://clerk.com/) for authentication
+- [Plausible](https://plausible.io/) & [Helicone](https://helicone.ai/) for analytics & observability
 
 ## Cloning & running
 
-1. Clone the repo: `git clone https://github.com/Reda-Darbal/logo-maker-v2`
-2. Create a `.env` file and add your [Together AI API key](https://www.together.ai/): `TOGETHER_API_KEY=`
+1. Clone the repo: `git clone https://github.com/Nutlope/logocreator`
+2. Create a `.env` file and add your [Together AI API key](https://api.together.xyz/settings/api-keys): `TOGETHER_API_KEY=`
 3. Run `npm install` and `npm run dev` to install dependencies and run locally.
+
+## Current tasks
+
+- [ ] Fully test locally on desktop, mobile, different browsers, and light/dark mode
+- [ ] Fully test on prod, desktop + mobile
+- [ ] Go through the code to make sure it's clean
+- [ ] Play around with the prompt some more (read flux prompting best practices)
 
 ## Future Tasks
 
-- [ ] Implement A/B testing for different logo variations
-- [ ] Add export options for different use cases (social media, print, etc.)
-- [ ] Create a marketplace for custom logo elements
-- [ ] Implement automatic brand guidelines generation
-- [ ] Add performance optimizations for faster generation
-- [ ] Create a version history system
-- [ ] Add accessibility improvements
-- [ ] Implement better error handling and user feedback
-- [ ] Add support for custom fonts
-- [ ] Create documentation for API integration
+- [ ] Create a dashboard with a user's logo history
+- [ ] Support SVG exports instead of just PNG
+- [ ] Add support for additional styles
+- [ ] Add a dropdown for image size (up to 1024x1024)
+- [ ] Allow the ability to upload a reference logo (use vision model to read it)
+- [ ] Redesign popular brand’s logos with my logo maker and have it in a showcase
