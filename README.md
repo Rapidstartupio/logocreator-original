@@ -24,7 +24,6 @@
 
 ## Current tasks
 
-- [ ] Fully test on prod, desktop + mobile
 - [ ] Play around with the prompt some more (read flux prompting best practices)
 
 ## Future Tasks

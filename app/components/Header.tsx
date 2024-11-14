@@ -21,9 +21,9 @@ export default function Header({ className }: { className: string }) {
             <Image
               src="together-ai-logo1.svg"
               alt="together.ai"
-              width={450}
+              width={400}
               height={120}
-              className="w-[233px] md:w-[350px] lg:w-[450px]"
+              className="w-[220px] md:w-[330px] lg:w-[390px]"
               priority
             />
           </Link>
