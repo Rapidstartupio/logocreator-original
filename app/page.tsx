@@ -26,7 +26,8 @@ import { DownloadIcon, Info, RefreshCwIcon } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 import Header from "./components/Header";
-import Footer from "./components/footer";
+import Footer from "./components/Footer";
+
 import { domain } from "@/app/lib/domain";
 
 const layouts = [

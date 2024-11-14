@@ -11,8 +11,11 @@ let ratelimit: Ratelimit | undefined;
 if (process.env.UPSTASH_REDIS_REST_URL) {
   ratelimit = new Ratelimit({
     redis: Redis.fromEnv(),
-    // Allow 3 requests per month
-    limiter: Ratelimit.fixedWindow(3, "30 d"),
+    // Allow 3 requests per 2 months on prod
+    limiter: Ratelimit.fixedWindow(
+      process.env.NODE_ENV === "production" ? 3 : 1000,
+      "60 d",
+    ),
     analytics: true,
     prefix: "logocreator",
   });
