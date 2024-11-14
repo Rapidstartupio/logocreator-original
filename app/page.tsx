@@ -13,22 +13,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { toast } from "@/hooks/use-toast";
 import { SignInButton, useUser } from "@clerk/nextjs";
 import * as RadioGroup from "@radix-ui/react-radio-group";
-import { DownloadIcon, Info, RefreshCwIcon } from "lucide-react";
+import { DownloadIcon, RefreshCwIcon } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
-
 import { domain } from "@/app/lib/domain";
+import InfoTooltip from "./components/InfoToolTip";
 
 const layouts = [
   { name: "Solo", icon: "/solo.svg" },
@@ -150,9 +144,7 @@ export default function Page() {
                       placeholder="API Key"
                     />
                   </div>
-                  {/* Divider Line */}
                   <div className="-mx-6 mb-6 h-px w-[calc(100%+48px)] bg-[#343434]"></div>
-                  {/* Company Name Section */}
                   <div className="mb-6">
                     <label
                       htmlFor="company-name"
@@ -287,7 +279,6 @@ export default function Page() {
                   {/* Additional Options Section */}
                   <div className="mb-1">
                     <div className="mt-1">
-                      {/* Additional Info Section */}
                       <div className="mb-1">
                         <label
                           htmlFor="additional-info"
@@ -413,20 +404,5 @@ export default function Page() {
         </div>
       </div>
     </div>
-  );
-}
-
-function InfoTooltip({ content }: { content: string }) {
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Info size={11} className="ml-2 cursor-default text-[#6F6F6F]" />
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>{content}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
   );
 }

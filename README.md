@@ -4,7 +4,7 @@
 </a>
 
 <p align="center">
-  An open source logo generator – create professional logos in seconds with customizable styles. Powered by Together.ai & Flux.
+  An open source logo generator – create professional logos in seconds with customizable styles.
 </p>
 
 ## Tech stack
@@ -26,7 +26,8 @@
 
 - [ ] Fully test locally on desktop, mobile, different browsers, and light/dark mode
 - [ ] Fully test on prod, desktop + mobile
-- [ ] Go through the code to make sure it's clean
+- [ ] When BYOK is set, set credits to "BYOK"
+- [ ] Save BYOK to localstorage
 - [ ] Play around with the prompt some more (read flux prompting best practices)
 
 ## Future Tasks
