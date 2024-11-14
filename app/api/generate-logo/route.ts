@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     options.baseURL = "https://together.helicone.ai/v1";
     options.defaultHeaders = {
       "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
-      "Helicone-Property-BYOK": data.userAPIKey ? "true" : "false",
+      "Helicone-Property-LOGOBYOK": data.userAPIKey ? "true" : "false",
     };
   }
 
