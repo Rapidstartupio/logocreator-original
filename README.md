@@ -9,7 +9,7 @@
 
 ## Tech stack
 
-- [Flux Pro 1.1](https://api.together.ai/signin?redirectUrl=/playground/image/black-forest-labs/FLUX.1.1-pro) on [Together AI](https://www.together.ai/) for logo generation
+- [Flux Pro 1.1](https://dub.sh/flux-playground) on [Together AI](https://dub.sh/together-ai) for logo generation
 - [Next.js](https://nextjs.org/) with TypeScript for the app framework
 - [Shadcn](https://ui.shadcn.com/) for UI components & [Tailwind](https://tailwindcss.com/) for styling
 - [Upstash Redis](https://upstash.com/) for rate limiting
@@ -26,7 +26,6 @@
 
 - [ ] Fully test locally on desktop, mobile, different browsers, and light/dark mode
 - [ ] Fully test on prod, desktop + mobile
-- [ ] Update links everywhere
 - [ ] Play around with the prompt some more (read flux prompting best practices)
 
 ## Future Tasks

@@ -7,21 +7,18 @@ const Footer = () => (
     <div className="mb-2 flex-grow pl-0 text-center md:mb-0 md:pl-0 lg:pl-48">
       <span className="text-sm text-[#6F6F6F]">
         Powered by{" "}
-        <a href="https://www.together.ai/" className="underline">
+        <a href="https://dub.sh/together-ai" className="underline">
           Together.ai
         </a>{" "}
         &{" "}
-        <a
-          href="https://api.together.ai/signin?redirectUrl=/playground/image/black-forest-labs/FLUX.1.1-pro"
-          className="underline"
-        >
+        <a href="https://dub.sh/flux-playground" className="underline">
           Flux
         </a>
       </span>
     </div>
     <div className="mb-2 flex space-x-3 md:mb-0">
       <a
-        href="https://github.com/Nutlope"
+        href="https://github.com/Nutlope/logocreator"
         className="flex items-center rounded border border-[#6F6F6F] px-2 py-1 text-sm text-[#6F6F6F]"
       >
         <Image src={GithubSVG} alt="Twitter" className="mr-1 h-5 w-5" />
