@@ -11,7 +11,7 @@ let ratelimit: Ratelimit | undefined;
 if (process.env.UPSTASH_REDIS_REST_URL) {
   ratelimit = new Ratelimit({
     redis: Redis.fromEnv(),
-    // Allow 100 requests per day (~5-10 prompts)
+    // Allow 3 requests per month
     limiter: Ratelimit.fixedWindow(3, "30 d"),
     analytics: true,
     prefix: "logocreator",
@@ -75,17 +75,17 @@ export async function POST(req: Request) {
   }
 
   const flashyStyle = dedent`
-  The design should be flashy, attention grabbing, bold, and eye-catching. 
-  
+  The design should be flashy, attention grabbing, bold, and eye-catching.
+
   Use vibrant colors with metallic, shiny, and glossy accents. It should feel futuristic.
-  
+
   Feel free to add in neon colors to make the logo pop.`;
 
   const techStyle = dedent`
   The design should be similar to a tech company logo. Minimalist, clean, and sleek.
 
   The color palette should be neutral with subtle accents.
-  
+
   Simple geometric shapes, clean lines, shadows, and flat.
   `;
 
@@ -95,24 +95,24 @@ export async function POST(req: Request) {
   Use geometric shapes and clean lines to create a balanced aesthetic.
 
   The colors should be natural with subtle accents.
-  
+
   Feel free to use strategic negative space to create visual interest.`;
 
   const playfulStyle = dedent`
-  The design should be playful, lighthearted, and lively. 
-  
+  The design should be playful, lighthearted, and lively.
+
   Feel free to use bright bold colors with rounded shapes.`;
 
   const abstractStyle = dedent`
   The design should be abstract, artistic, and creative.
-  
+
   Use unique shapes, patterns, and textures to create a visually interesting and wild logo.`;
 
   const minimalStyle = dedent`
   The design should be minimal and simple. It should be timeless and versatile.
-  
-  The logo only has a single color and makes use of negative space. Light, soft, and subtle. 
-  
+
+  The logo only has a single color and makes use of negative space. Light, soft, and subtle.
+
   Use flat design with minimal details.`;
 
   const styleLookup: Record<string, string> = {
@@ -139,14 +139,14 @@ export async function POST(req: Request) {
     Stack: stackLayout,
   };
 
-  const prompt = dedent`A single logo that is high-quality made for both digital and print media.  
-  
+  const prompt = dedent`A single logo that is high-quality made for both digital and print media.
+
   The logo should look like it was made by an award winning professional design studio. It should only contain a few vector shapes.
 
   ${layoutLookup[data.selectedLayout]}
 
   ${styleLookup[data.selectedStyle]}
-  
+
   Use ${data.selectedPrimaryColor.toLowerCase()} as the main primary color. The background should be ${data.selectedBackgroundColor.toLowerCase()}.
 
   Here's some additional information to help guide your design:
@@ -159,8 +159,8 @@ export async function POST(req: Request) {
     const response = await client.images.create({
       prompt,
       model: "black-forest-labs/FLUX.1.1-pro",
-      width: 512,
-      height: 512,
+      width: 768,
+      height: 768,
       steps: 4,
       // @ts-expect-error - this is not typed in the API
       response_format: "base64",
