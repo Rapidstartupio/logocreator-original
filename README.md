@@ -22,10 +22,6 @@
 2. Create a `.env` file and add your [Together AI API key](https://api.together.xyz/settings/api-keys): `TOGETHER_API_KEY=`
 3. Run `npm install` and `npm run dev` to install dependencies and run locally.
 
-## Current tasks
-
-- [ ] Play around with the prompt some more (read flux prompting best practices)
-
 ## Future Tasks
 
 - [ ] Create a dashboard with a user's logo history

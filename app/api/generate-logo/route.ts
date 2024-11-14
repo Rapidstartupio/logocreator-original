@@ -1,4 +1,3 @@
-import { layoutLookup, styleLookup } from "@/app/lib/prompt-options";
 import { clerkClient, currentUser } from "@clerk/nextjs/server";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
@@ -20,7 +19,7 @@ export async function POST(req: Request) {
     .object({
       userAPIKey: z.string().optional(),
       companyName: z.string(),
-      selectedLayout: z.string(),
+      // selectedLayout: z.string(),
       selectedStyle: z.string(),
       selectedPrimaryColor: z.string(),
       selectedBackgroundColor: z.string(),
@@ -83,28 +82,43 @@ export async function POST(req: Request) {
     }
   }
 
-  const prompt = dedent`A single logo that is high-quality made for both digital and print media.
+  const flashyStyle =
+    "Flashy, attention grabbing, bold, futuristic, and eye-catching. Use vibrant neon colors with metallic, shiny, and glossy accents.";
 
-  The logo should look like it was made by an award winning professional design studio. It should only contain a few vector shapes.
+  const techStyle =
+    "highly detailed, sharp focus, cinematic, photorealistic, Minimalist, clean, sleek, neutral color pallete with subtle accents, clean lines, shadows, and flat.";
 
-  ${layoutLookup[data.selectedLayout]}
+  const modernStyle =
+    "modern, forward-thinking, flat design, geometric shapes, clean lines, natural colors with subtle accents, use strategic negative space to create visual interest.";
 
-  ${styleLookup[data.selectedStyle]}
+  const playfulStyle =
+    "playful, lighthearted, bright bold colors, rounded shapes, lively.";
 
-  Use ${data.selectedPrimaryColor.toLowerCase()} as the main primary color. The background should be ${data.selectedBackgroundColor.toLowerCase()}.
+  const abstractStyle =
+    "abstract, artistic, creative, unique shapes, patterns, and textures to create a visually interesting and wild logo.";
 
-  Here's some additional information to help guide your design:
+  const minimalStyle =
+    "minimal, simple, timeless, versatile, single color logo, use negative space, flat design with minimal details, Light, soft, and subtle.";
 
-  The company name is ${data.companyName}.
+  const styleLookup: Record<string, string> = {
+    Flashy: flashyStyle,
+    Tech: techStyle,
+    Modern: modernStyle,
+    Playful: playfulStyle,
+    Abstract: abstractStyle,
+    Minimal: minimalStyle,
+  };
 
-  ${data.additionalInfo ? data.additionalInfo : ""}`;
+  const prompt = dedent`A single logo, high-quality, award-winning professional design, made for both digital and print media, only contains a few vector shapes, ${styleLookup[data.selectedStyle]}
+
+  Primary color is ${data.selectedPrimaryColor.toLowerCase()} and background color is ${data.selectedBackgroundColor.toLowerCase()}. The company name is ${data.companyName}, make sure to include the company name in the logo. ${data.additionalInfo ? `Additional info: ${data.additionalInfo}` : ""}`;
 
   try {
     const response = await client.images.create({
       prompt,
       model: "black-forest-labs/FLUX.1.1-pro",
-      width: 768,
-      height: 768,
+      width: 1024,
+      height: 1024,
       steps: 4,
       // @ts-expect-error - this is not typed in the API
       response_format: "base64",
