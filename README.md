@@ -24,7 +24,6 @@
 
 ## Current tasks
 
-- [ ] Fully test locally on desktop, mobile, different browsers, and light/dark mode
 - [ ] Fully test on prod, desktop + mobile
 - [ ] Play around with the prompt some more (read flux prompting best practices)
 

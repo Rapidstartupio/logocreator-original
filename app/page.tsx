@@ -167,7 +167,7 @@ export default function Page() {
                     <Input
                       value={companyName}
                       onChange={(e) => setCompanyName(e.target.value)}
-                      placeholder="Amazon"
+                      placeholder="Sam's Burgers"
                       required
                     />
                   </div>

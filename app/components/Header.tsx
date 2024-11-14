@@ -39,7 +39,7 @@ export default function Header({ className }: { className: string }) {
           </SignedOut>
           <SignedIn>
             {user?.unsafeMetadata.remaining === "BYOK" ? (
-              <p>Using your API key</p>
+              <p>Your API key</p>
             ) : (
               <p>Credits: {`${user?.unsafeMetadata.remaining ?? 3}`}</p>
             )}
