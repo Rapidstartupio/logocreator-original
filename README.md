@@ -26,8 +26,7 @@
 
 - [ ] Fully test locally on desktop, mobile, different browsers, and light/dark mode
 - [ ] Fully test on prod, desktop + mobile
-- [ ] When BYOK is set, set credits to "BYOK"
-- [ ] Save BYOK to localstorage
+- [ ] Update links everywhere
 - [ ] Play around with the prompt some more (read flux prompting best practices)
 
 ## Future Tasks

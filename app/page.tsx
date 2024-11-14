@@ -53,7 +53,12 @@ const backgroundColors = [
 ];
 
 export default function Page() {
-  const [userAPIKey, setUserAPIKey] = useState("");
+  const [userAPIKey, setUserAPIKey] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("userAPIKey") || "";
+    }
+    return "";
+  });
   const [companyName, setCompanyName] = useState("");
   const [selectedLayout, setSelectedLayout] = useState(layouts[0].name);
   const [selectedStyle, setSelectedStyle] = useState(logoStyles[0].name);
@@ -68,6 +73,12 @@ export default function Page() {
   const [generatedImage, setGeneratedImage] = useState("");
 
   const { isSignedIn, isLoaded, user } = useUser();
+
+  const handleAPIKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setUserAPIKey(newValue);
+    localStorage.setItem("userAPIKey", newValue);
+  };
 
   async function generateLogo() {
     if (!isSignedIn) {
@@ -140,8 +151,9 @@ export default function Page() {
                     </label>
                     <Input
                       value={userAPIKey}
-                      onChange={(e) => setUserAPIKey(e.target.value)}
+                      onChange={handleAPIKeyChange}
                       placeholder="API Key"
+                      type="password"
                     />
                   </div>
                   <div className="-mx-6 mb-6 h-px w-[calc(100%+48px)] bg-[#343434]"></div>

@@ -56,6 +56,11 @@ export async function POST(req: Request) {
 
   if (data.userAPIKey) {
     client.apiKey = data.userAPIKey;
+    (await clerkClient()).users.updateUserMetadata(user.id, {
+      unsafeMetadata: {
+        remaining: "BYOK",
+      },
+    });
   }
 
   if (ratelimit) {

@@ -38,7 +38,11 @@ export default function Header({ className }: { className: string }) {
             />
           </SignedOut>
           <SignedIn>
-            <p>Credits: {`${user?.unsafeMetadata.remaining ?? 3}`}</p>
+            {user?.unsafeMetadata.remaining === "BYOK" ? (
+              <p>Using your API key</p>
+            ) : (
+              <p>Credits: {`${user?.unsafeMetadata.remaining ?? 3}`}</p>
+            )}
             <UserButton />
           </SignedIn>
         </div>
