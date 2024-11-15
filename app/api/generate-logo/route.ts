@@ -46,8 +46,10 @@ export async function POST(req: Request) {
 
   const client = new Together({
     ...options,
-    apiKey: data.userAPIKey || process.env.TOGETHER_API_KEY || '',
+    apiKey: data.userAPIKey || process.env.TOGETHER_API_KEY,
   });
+
+  console.log('Using API key:', data.userAPIKey ? 'User provided' : 'Environment variable');
 
   const clerkClientInstance = await clerkClient();
   if (data.userAPIKey) {
