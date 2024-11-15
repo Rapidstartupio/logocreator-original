@@ -119,18 +119,26 @@ ${layoutLookup[data.selectedLayout]}
 
 Primary color is ${data.selectedPrimaryColor.toLowerCase()} and background color is ${data.selectedBackgroundColor.toLowerCase()}. The company name is ${data.companyName}, make sure to include the company name in the logo. ${data.additionalInfo ? `Additional info: ${data.additionalInfo}` : ""}`;
 
-  try {
+  async function generateSingleImage() {
     const response = await client.images.create({
       prompt,
       model: "black-forest-labs/FLUX.1.1-pro",
       width: 768,
       height: 768,
       steps: 4,
-      n: data.numberOfImages,
       // @ts-expect-error - this is not typed in the API
       response_format: "base64",
     });
-    return Response.json(response.data, { status: 200 });
+    return response.data[0].b64_json;
+  }
+
+  try {
+    const numberOfImages = data.numberOfImages || 1;
+    const images = await Promise.all(
+      Array(numberOfImages).fill(null).map(() => generateSingleImage())
+    );
+    
+    return Response.json(images, { status: 200 });
   } catch (error) {
     const invalidApiKey = z
       .object({
