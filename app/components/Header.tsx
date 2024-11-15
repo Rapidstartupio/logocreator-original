@@ -8,6 +8,7 @@ import {
   useUser,
 } from "@clerk/nextjs";
 import { domain } from "@/app/lib/domain";
+import { APIKeyDialog } from "./APIKeyDialog";
 
 export default function Header({ className }: { className: string }) {
   const { user } = useUser();
@@ -59,7 +60,18 @@ export default function Header({ className }: { className: string }) {
           </SignedOut>
           <SignedIn>
             {getCreditsDisplay()}
-            <UserButton />
+            <UserButton 
+              afterSignOutUrl="/"
+              appearance={{
+                elements: {
+                  userButtonPopoverCard: "py-2",
+                  userButtonPopoverActions: "py-2"
+                }
+              }}
+              userProfileUrl="/"
+            >
+              <APIKeyDialog />
+            </UserButton>
           </SignedIn>
         </div>
       </div>
