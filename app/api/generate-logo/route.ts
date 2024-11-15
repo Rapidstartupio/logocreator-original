@@ -66,16 +66,22 @@ export async function POST(req: Request) {
     // Completely clear all API key related metadata
     await clerkClientInstance.users.updateUserMetadata(user.id, {
       unsafeMetadata: {
-        remaining: ratelimit ? (await ratelimit.limit(user.id)).remaining : undefined,
         hasApiKey: false,
         userAPIKey: undefined  // explicitly remove the API key
       },
     });
   }
 
-  // Move the rate limit check after metadata update
-  if (ratelimit && !data.userAPIKey) {  // Only check rate limit if not using custom API key
+  // Handle rate limiting
+  if (ratelimit && !data.userAPIKey) {
     const { success, remaining } = await ratelimit.limit(user.id);
+    
+    // Update the remaining count in metadata
+    await clerkClientInstance.users.updateUserMetadata(user.id, {
+      unsafeMetadata: {
+        remaining,
+      },
+    });
     
     if (!success) {
       return new Response(
