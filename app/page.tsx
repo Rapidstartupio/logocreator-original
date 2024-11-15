@@ -104,10 +104,15 @@ export default function Page() {
 
     setIsLoading(true);
 
+    const userAPIKey = typeof window !== 'undefined' ? localStorage.getItem("userAPIKey") || "" : "";
+
     const res = await fetch("/api/generate-logo", {
       method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
-        userAPIKey: "",
+        userAPIKey,
         companyName,
         selectedLayout,
         selectedStyle,
