@@ -120,26 +120,38 @@ ${layoutLookup[data.selectedLayout]}
 Primary color is ${data.selectedPrimaryColor.toLowerCase()} and background color is ${data.selectedBackgroundColor.toLowerCase()}. The company name is ${data.companyName}, make sure to include the company name in the logo. ${data.additionalInfo ? `Additional info: ${data.additionalInfo}` : ""}`;
 
   async function generateSingleImage() {
-    const response = await client.images.create({
-      prompt,
-      model: "black-forest-labs/FLUX.1.1-pro",
-      width: 768,
-      height: 768,
-      steps: 4,
-      // @ts-expect-error - this is not typed in the API
-      response_format: "base64",
-    });
-    return response.data[0].b64_json;
+    try {
+      const response = await client.images.create({
+        prompt,
+        model: "black-forest-labs/FLUX.1.1-pro",
+        width: 768,
+        height: 768,
+        steps: 4,
+        // @ts-expect-error - this is not typed in the API
+        response_format: "base64",
+      });
+      return response.data[0].b64_json;
+    } catch (error) {
+      console.error('Error generating single image:', error);
+      throw error;
+    }
   }
 
   try {
     const numberOfImages = data.numberOfImages || 1;
-    const images = await Promise.all(
-      Array(numberOfImages).fill(null).map(() => generateSingleImage())
-    );
+    console.log('Generating images with prompt:', prompt); // Debug log
+    
+    // Generate images sequentially instead of in parallel to avoid rate limits
+    const images = [];
+    for (let i = 0; i < numberOfImages; i++) {
+      const image = await generateSingleImage();
+      images.push(image);
+    }
     
     return Response.json(images, { status: 200 });
   } catch (error) {
+    console.error('Error in main try block:', error); // Debug log
+
     const invalidApiKey = z
       .object({
         error: z.object({
@@ -173,6 +185,15 @@ Primary color is ${data.selectedPrimaryColor.toLowerCase()} and background color
       );
     }
 
+    // Add additional error logging
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+      });
+    }
+
+    // If it's not one of our known errors, throw it
     throw error;
   }
 }
