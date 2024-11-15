@@ -50,7 +50,7 @@ export default function Header({ className }: { className: string }) {
           </Link>*/}
         </div>
         {/* Credits Section */}
-        <div className="absolute right-8 flex items-center space-x-2 md:top-20 lg:top-8">
+        <div className="absolute right-8 flex items-center space-x-2 md:top-20 lg:top-8 z-10">
           <SignedOut>
             <SignInButton
               mode="modal"
