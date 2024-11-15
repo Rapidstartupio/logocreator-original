@@ -24,6 +24,7 @@ export async function POST(req: Request) {
       selectedPrimaryColor: z.string(),
       selectedBackgroundColor: z.string(),
       additionalInfo: z.string().optional(),
+      numberOfImages: z.number().default(1),
     })
     .parse(json);
 
@@ -108,7 +109,7 @@ export async function POST(req: Request) {
 
   const layoutLookup: Record<string, string> = {
     Solo: "Create a single, centered logo design",
-    Side: "Create a logo with text on the side of the icon",
+    Side: "Create a horizontal logo layout. The logo must have two distinct elements side by side: (1) an icon or symbol on the left side, and (2) the company name text on the right side. Both elements should be of equal height and aligned horizontally in the center. Maintain clear spacing between the icon and text.",
     Stack: "Create a stacked logo with the icon above the text",
   };
 
@@ -125,10 +126,11 @@ Primary color is ${data.selectedPrimaryColor.toLowerCase()} and background color
       width: 768,
       height: 768,
       steps: 4,
+      n: data.numberOfImages,
       // @ts-expect-error - this is not typed in the API
       response_format: "base64",
     });
-    return Response.json(response.data[0], { status: 200 });
+    return Response.json(response.data, { status: 200 });
   } catch (error) {
     const invalidApiKey = z
       .object({
