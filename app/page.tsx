@@ -151,8 +151,10 @@ export default function Page() {
     setGeneratedImages([]);
     setSelectedImageIndex(0);
 
+    const userAPIKey = typeof window !== 'undefined' ? localStorage.getItem("userAPIKey") || "" : "";
+
     const requestBody = {
-      userAPIKey: "",
+      userAPIKey,
       companyName,
       selectedLayout,
       selectedStyle,
@@ -431,7 +433,7 @@ export default function Page() {
 
         <div className="flex w-full flex-col pt-12 md:pt-0">
           <Header className="hidden md:block" />
-          <div className="relative flex flex-1 items-center justify-center px-4">
+          <div className="relative flex flex-grow items-center justify-center px-4">
             <div className="flex w-full max-w-[1200px] justify-center gap-8">
               {/* Grid of smaller images - now centered */}
               {numberOfImages !== "1" && (
@@ -463,9 +465,9 @@ export default function Page() {
                 </div>
               )}
               
-              {/* Main preview area - now centered */}
-              <div className="flex items-center justify-center">
-                <div className="relative aspect-square w-full max-w-lg">
+              {/* Main preview area */}
+              <div className="flex items-center justify-center flex-1">
+                <div className="relative w-[512px]">
                   {generatedImages.length > 0 ? (
                     <div className="flex flex-col gap-4">
                       <div className="relative aspect-square w-full">
@@ -475,6 +477,7 @@ export default function Page() {
                           height={512}
                           src={`data:image/png;base64,${generatedImages[selectedImageIndex]}`}
                           alt=""
+                          priority
                         />
                         <div
                           className={`pointer-events-none absolute inset-0 transition ${

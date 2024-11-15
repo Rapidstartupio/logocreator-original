@@ -65,10 +65,10 @@ export default function Header({ className }: { className: string }) {
               appearance={{
                 elements: {
                   userButtonPopoverCard: "py-2",
-                  userButtonPopoverActions: "py-2"
+                  userButtonPopoverActions: "py-2",
+                  userButtonPopoverFooter: "hidden"
                 }
               }}
-              userProfileUrl="/"
             >
               <APIKeyDialog />
             </UserButton>
