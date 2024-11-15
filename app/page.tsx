@@ -104,15 +104,13 @@ export default function Page() {
 
     setIsLoading(true);
 
-    const userAPIKey = typeof window !== 'undefined' ? localStorage.getItem("userAPIKey") || "" : "";
-
     const res = await fetch("/api/generate-logo", {
       method: "POST",
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        userAPIKey,
+        userAPIKey: localStorage.getItem("userAPIKey") || undefined,
         companyName,
         selectedLayout,
         selectedStyle,
@@ -156,27 +154,21 @@ export default function Page() {
     setGeneratedImages([]);
     setSelectedImageIndex(0);
 
-    const userAPIKey = typeof window !== 'undefined' ? localStorage.getItem("userAPIKey") || "" : "";
-
-    const requestBody = {
-      userAPIKey,
-      companyName,
-      selectedLayout,
-      selectedStyle,
-      selectedPrimaryColor,
-      selectedBackgroundColor,
-      additionalInfo,
-      numberOfImages: parseInt(numberOfImages),
-    };
-
-    console.log('Request body:', requestBody); // Debug log
-
     const res = await fetch("/api/generate-logo", {
       method: "POST",
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify({
+        userAPIKey: localStorage.getItem("userAPIKey") || undefined,
+        companyName,
+        selectedLayout,
+        selectedStyle,
+        selectedPrimaryColor,
+        selectedBackgroundColor,
+        additionalInfo,
+        numberOfImages: parseInt(numberOfImages),
+      }),
     });
 
     if (res.ok) {

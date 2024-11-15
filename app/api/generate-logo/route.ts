@@ -8,6 +8,12 @@ import { z } from "zod";
 let ratelimit: Ratelimit | undefined;
 
 export async function POST(req: Request) {
+  console.log('Environment check:', {
+    hasTogetherKey: Boolean(process.env.TOGETHER_API_KEY),
+    keyLength: process.env.TOGETHER_API_KEY?.length,
+    envKeys: Object.keys(process.env).filter(key => key.includes('TOGETHER')),
+  });
+
   const user = await currentUser();
 
   if (!user) {
@@ -15,6 +21,8 @@ export async function POST(req: Request) {
   }
 
   const json = await req.json();
+  console.log('Received request body:', json); // Debug log
+
   const data = z
     .object({
       userAPIKey: z.string().optional(),
@@ -28,28 +36,39 @@ export async function POST(req: Request) {
     })
     .parse(json);
 
-  // Add observability if a Helicone key is specified, otherwise skip
-  const options: ConstructorParameters<typeof Together>[0] = {
-    apiKey: process.env.TOGETHER_API_KEY // Set default API key from env
-  };
-
   // Add rate limiting if Upstash API keys are set & no BYOK, otherwise skip
   if (process.env.UPSTASH_REDIS_REST_URL && !data.userAPIKey) {
     ratelimit = new Ratelimit({
       redis: Redis.fromEnv(),
       // Allow 3 requests per 2 months on prod
-      limiter: Ratelimit.fixedWindow(3, "60 d"),
+      limiter: Ratelimit.fixedWindow(30, "60 d"),
       analytics: true,
       prefix: "logocreator",
     });
   }
 
+  // Initialize Together client with environment API key by default
+  const options: ConstructorParameters<typeof Together>[0] = {
+    apiKey: process.env.TOGETHER_API_KEY
+  };
+  
+  if (process.env.HELICONE_API_KEY) {
+    options.baseURL = "https://together.helicone.ai/v1";
+    options.defaultHeaders = {
+      "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
+      "Helicone-Property-LOGOBYOK": data.userAPIKey ? "true" : "false",
+    };
+  }
+
+  // Create the client with either user API key or keep the default env key
   const client = new Together({
     ...options,
-    apiKey: data.userAPIKey || process.env.TOGETHER_API_KEY,
+    ...(data.userAPIKey ? { apiKey: data.userAPIKey } : {})
   });
 
-  console.log('Using API key:', data.userAPIKey ? 'User provided' : 'Environment variable');
+  // Add debug logging
+  console.log('Using API key from:', data.userAPIKey ? 'User' : 'Environment');
+  console.log('Environment API key exists:', Boolean(process.env.TOGETHER_API_KEY));
 
   const clerkClientInstance = await clerkClient();
   if (data.userAPIKey) {
@@ -60,38 +79,25 @@ export async function POST(req: Request) {
       },
     });
   } else {
-    // Clear API key related metadata and reset to default credits if not already set
-    await clerkClientInstance.users.updateUserMetadata(user.id, {
-      unsafeMetadata: {
-        hasApiKey: false,
-        // Only set remaining if using rate limit
-        ...(ratelimit 
-          ? {} // Let the rate limit handler set the remaining count
-          : { remaining: 3 } // Reset to default credits if no rate limit
-        ),
-      },
-    });
-  }
-
-  // Handle rate limiting
-  if (ratelimit && !data.userAPIKey) {
-    const { success, remaining } = await ratelimit.limit(user.id);
-    
-    // Update the remaining count in metadata
-    await clerkClientInstance.users.updateUserMetadata(user.id, {
-      unsafeMetadata: {
-        remaining,
-      },
-    });
-    
-    if (!success) {
-      return new Response(
-        "You've used up all your credits. Enter your own Together API Key to generate more logos.",
-        {
-          status: 429,
-          headers: { "Content-Type": "text/plain" },
+    // Handle rate limiting for non-BYOK users
+    if (ratelimit) {
+      const { success, remaining } = await ratelimit.limit(user.id);
+      await clerkClientInstance.users.updateUserMetadata(user.id, {
+        unsafeMetadata: {
+          hasApiKey: false,
+          remaining,
         },
-      );
+      });
+
+      if (!success) {
+        return new Response(
+          "You've used up all your credits. Enter your own Together API Key to generate more logos.",
+          {
+            status: 429,
+            headers: { "Content-Type": "text/plain" },
+          },
+        );
+      }
     }
   }
 
