@@ -23,6 +23,8 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import { domain } from "@/app/lib/domain";
 import InfoTooltip from "./components/InfoToolTip";
+import { NumberSelector } from "./components/NumberSelector";
+import { ImageGrid } from "./components/ImageGrid";
 
 const layouts = [
   { name: "Solo", icon: "/solo.svg" },
@@ -70,7 +72,9 @@ export default function Page() {
   );
   const [additionalInfo, setAdditionalInfo] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [generatedImage, setGeneratedImage] = useState("");
+  const [numberOfImages, setNumberOfImages] = useState("1");
+  const [generatedImages, setGeneratedImages] = useState<string[]>([]);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   const { isSignedIn, isLoaded, user } = useUser();
 
@@ -86,6 +90,8 @@ export default function Page() {
     }
 
     setIsLoading(true);
+    setGeneratedImages([]);
+    setSelectedImageIndex(0);
 
     const res = await fetch("/api/generate-logo", {
       method: "POST",
@@ -97,12 +103,14 @@ export default function Page() {
         selectedPrimaryColor,
         selectedBackgroundColor,
         additionalInfo,
+        numberOfImages: parseInt(numberOfImages),
       }),
     });
 
     if (res.ok) {
       const json = await res.json();
-      setGeneratedImage(`data:image/png;base64,${json.b64_json}`);
+      const images = Array.isArray(json) ? json.map(img => img.b64_json) : [json.b64_json];
+      setGeneratedImages(images);
       await user.reload();
     } else if (res.headers.get("Content-Type") === "text/plain") {
       toast({
@@ -130,7 +138,7 @@ export default function Page() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              setGeneratedImage("");
+              setGeneratedImages([]);
               generateLogo();
             }}
             className="flex h-full w-full flex-col"
@@ -307,6 +315,13 @@ export default function Page() {
                       </div>
                     </div>
                   </div>
+                  {/* Number of Images Section */}
+                  <div className="mb-6">
+                    <NumberSelector 
+                      value={numberOfImages} 
+                      onValueChange={setNumberOfImages} 
+                    />
+                  </div>
                 </div>
               </div>
               <div className="px-8 py-4 md:px-6 md:py-6">
@@ -368,37 +383,48 @@ export default function Page() {
           <Header className="hidden md:block" />{" "}
           {/* Show header on larger screens */}
           <div className="relative flex flex-grow items-center justify-center px-4">
-            <div className="relative aspect-square w-full max-w-lg">
-              {generatedImage ? (
-                <>
-                  <Image
-                    className={`${isLoading ? "animate-pulse" : ""}`}
-                    width={512}
-                    height={512}
-                    src={generatedImage}
-                    alt=""
-                  />
-                  <div
-                    className={`pointer-events-none absolute inset-0 transition ${isLoading ? "bg-black/50 duration-500" : "bg-black/0 duration-0"}`}
-                  />
+            <div className="relative w-full max-w-lg">
+              {generatedImages.length > 0 ? (
+                <div className="flex flex-col gap-4">
+                  <div className="relative aspect-square w-full">
+                    <Image
+                      className={`${isLoading ? "animate-pulse" : ""}`}
+                      width={512}
+                      height={512}
+                      src={`data:image/png;base64,${generatedImages[selectedImageIndex]}`}
+                      alt=""
+                    />
+                    <div
+                      className={`pointer-events-none absolute inset-0 transition ${
+                        isLoading ? "bg-black/50 duration-500" : "bg-black/0 duration-0"
+                      }`}
+                    />
 
-                  <div className="absolute -right-12 top-0 flex flex-col gap-2">
-                    <Button size="icon" variant="secondary" asChild>
-                      <a href={generatedImage} download="logo.png">
-                        <DownloadIcon />
-                      </a>
-                    </Button>
-                    <Button
-                      size="icon"
-                      onClick={generateLogo}
-                      variant="secondary"
-                    >
-                      <Spinner loading={isLoading}>
-                        <RefreshCwIcon />
-                      </Spinner>
-                    </Button>
+                    <div className="absolute -right-12 top-0 flex flex-col gap-2">
+                      <Button size="icon" variant="secondary" asChild>
+                        <a
+                          href={`data:image/png;base64,${generatedImages[selectedImageIndex]}`}
+                          download="logo.png"
+                        >
+                          <DownloadIcon />
+                        </a>
+                      </Button>
+                      <Button size="icon" onClick={generateLogo} variant="secondary">
+                        <Spinner loading={isLoading}>
+                          <RefreshCwIcon />
+                        </Spinner>
+                      </Button>
+                    </div>
                   </div>
-                </>
+
+                  {generatedImages.length > 1 && (
+                    <ImageGrid
+                      images={generatedImages}
+                      selectedIndex={selectedImageIndex}
+                      onSelect={setSelectedImageIndex}
+                    />
+                  )}
+                </div>
               ) : (
                 <Spinner loading={isLoading} className="size-8 text-white">
                   <div className="flex aspect-square w-full flex-col items-center justify-center rounded-xl bg-[#2C2C2C]">
