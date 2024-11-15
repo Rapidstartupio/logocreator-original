@@ -69,6 +69,17 @@ const frameClass = (isSelected: boolean) => cn(
     : "border-dashed border-gray-600 hover:border-gray-400"
 );
 
+// Add this helper function to determine what to show in empty frames
+const EmptyFrame = ({ isNewFrame }: { isNewFrame: boolean }) => (
+  <div className="flex h-full items-center justify-center bg-[#2C2C2C] p-4 text-center">
+    <span className="text-sm text-gray-400">
+      {isNewFrame 
+        ? "Use Generate Logo to get more images" 
+        : "Frame will be generated"}
+    </span>
+  </div>
+);
+
 export default function Page() {
   const [userAPIKey, setUserAPIKey] = useState(() => {
     if (typeof window !== "undefined") {
@@ -462,8 +473,11 @@ export default function Page() {
                     {Array.from({ length: parseInt(numberOfImages) }).map((_, index) => (
                       <div
                         key={index}
-                        onClick={() => setSelectedImageIndex(index)}
-                        className={frameClass(index === selectedImageIndex)}
+                        onClick={() => generatedImages[index] && setSelectedImageIndex(index)}
+                        className={cn(
+                          frameClass(index === selectedImageIndex),
+                          !generatedImages[index] && "cursor-default"
+                        )}
                       >
                         {generatedImages[index] ? (
                           <Image
@@ -474,9 +488,9 @@ export default function Page() {
                             className="h-full w-full object-cover"
                           />
                         ) : (
-                          <div className="flex h-full items-center justify-center bg-[#2C2C2C]">
-                            <span className="text-sm text-gray-400">Frame {index + 1}</span>
-                          </div>
+                          <EmptyFrame 
+                            isNewFrame={index >= generatedImages.length} 
+                          />
                         )}
                       </div>
                     ))}
