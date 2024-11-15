@@ -28,33 +28,10 @@ export async function POST(req: Request) {
     })
     .parse(json);
 
-  // Add API key validation
-  if (data.userAPIKey && !data.userAPIKey.startsWith('tok_')) {
-    return new Response(
-      "Invalid API key format. Together API keys should start with 'tok_'",
-      {
-        status: 400,
-        headers: { "Content-Type": "text/plain" },
-      }
-    );
-  }
-
   // Add observability if a Helicone key is specified, otherwise skip
   const options: ConstructorParameters<typeof Together>[0] = {
     apiKey: process.env.TOGETHER_API_KEY // Set default API key from env
   };
-
-  // Validate environment API key
-  if (!options.apiKey?.startsWith('tok_')) {
-    console.error('Invalid Together API key format in environment variables');
-    return new Response(
-      "Server configuration error",
-      {
-        status: 500,
-        headers: { "Content-Type": "text/plain" },
-      }
-    );
-  }
 
   // Add rate limiting if Upstash API keys are set & no BYOK, otherwise skip
   if (process.env.UPSTASH_REDIS_REST_URL && !data.userAPIKey) {

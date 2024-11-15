@@ -18,15 +18,6 @@ export function APIKeyDialog() {
 
   const handleSave = async () => {
     try {
-      if (apiKey && !apiKey.startsWith('tok_')) {
-        toast({
-          variant: "destructive",
-          title: "Invalid API Key",
-          description: "Together API keys should start with 'tok_'",
-        });
-        return;
-      }
-
       if (apiKey) {
         localStorage.setItem("userAPIKey", apiKey);
       } else {
