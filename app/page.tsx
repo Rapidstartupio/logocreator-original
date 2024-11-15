@@ -24,7 +24,7 @@ import Footer from "./components/Footer";
 import { domain } from "@/app/lib/domain";
 import InfoTooltip from "./components/InfoToolTip";
 import { NumberSelector } from "./components/NumberSelector";
-import { ImageGrid } from "./components/ImageGrid";
+import { cn } from "@/lib/utils";
 
 const layouts = [
   { name: "Solo", icon: "/solo.svg" },
@@ -58,8 +58,16 @@ const backgroundColors = [
 const gridContainerClass = {
   "1": "",
   "3": "grid grid-cols-1 gap-4",
-  "6": "grid grid-cols-3 grid-rows-2 gap-4"
+  "6": "grid grid-cols-2 gap-4"
 };
+
+// Add this CSS class for the frame styling
+const frameClass = (isSelected: boolean) => cn(
+  "aspect-square w-full rounded-lg border-2 transition-all duration-200 cursor-pointer overflow-hidden",
+  isSelected 
+    ? "border-primary ring-2 ring-primary" 
+    : "border-dashed border-gray-600 hover:border-gray-400"
+);
 
 export default function Page() {
   const [userAPIKey, setUserAPIKey] = useState(() => {
@@ -91,10 +99,54 @@ export default function Page() {
     localStorage.setItem("userAPIKey", newValue);
   };
 
-  async function generateLogo() {
-    if (!isSignedIn) {
-      return;
+  // Update the generateLogo function to handle single image refresh
+  async function generateSingleLogo(frameIndex: number) {
+    if (!isSignedIn) return;
+
+    setIsLoading(true);
+
+    const res = await fetch("/api/generate-logo", {
+      method: "POST",
+      body: JSON.stringify({
+        userAPIKey,
+        companyName,
+        selectedLayout,
+        selectedStyle,
+        selectedPrimaryColor,
+        selectedBackgroundColor,
+        additionalInfo,
+        numberOfImages: 1,
+      }),
+    });
+
+    if (res.ok) {
+      const [newImage] = await res.json();
+      setGeneratedImages(prev => {
+        const updated = [...prev];
+        updated[frameIndex] = newImage;
+        return updated;
+      });
+      await user.reload();
+    } else if (res.headers.get("Content-Type") === "text/plain") {
+      toast({
+        variant: "destructive",
+        title: res.statusText,
+        description: await res.text(),
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Whoops!",
+        description: `There was a problem processing your request: ${res.statusText}`,
+      });
     }
+
+    setIsLoading(false);
+  }
+
+  // Update the main generateLogo function
+  async function generateLogo() {
+    if (!isSignedIn) return;
 
     setIsLoading(true);
     setGeneratedImages([]);
@@ -115,16 +167,9 @@ export default function Page() {
     });
 
     if (res.ok) {
-      const json = await res.json();
-      const images = Array.isArray(json) ? json.map(img => img.b64_json) : [json.b64_json];
+      const images = await res.json();
       setGeneratedImages(images);
       await user.reload();
-    } else if (res.headers.get("Content-Type") === "text/plain") {
-      toast({
-        variant: "destructive",
-        title: res.statusText,
-        description: await res.text(),
-      });
     } else {
       toast({
         variant: "destructive",
@@ -397,13 +442,30 @@ export default function Page() {
             <div className="flex w-full gap-4">
               {/* Preview frames for multiple images */}
               {numberOfImages !== "1" && (
-                <div className={`w-64 ${gridContainerClass[numberOfImages as "3" | "6"]}`}>
-                  {Array.from({ length: parseInt(numberOfImages) }).map((_, index) => (
-                    <div
-                      key={index}
-                      className="aspect-square w-full rounded-lg border border-dashed border-gray-600 bg-[#2C2C2C]"
-                    />
-                  ))}
+                <div className={`w-64 flex flex-col gap-4`}>
+                  <div className={gridContainerClass[numberOfImages as "3" | "6"]}>
+                    {Array.from({ length: parseInt(numberOfImages) }).map((_, index) => (
+                      <div
+                        key={index}
+                        onClick={() => setSelectedImageIndex(index)}
+                        className={frameClass(index === selectedImageIndex)}
+                      >
+                        {generatedImages[index] ? (
+                          <Image
+                            src={`data:image/png;base64,${generatedImages[index]}`}
+                            alt={`Generated logo variation ${index + 1}`}
+                            width={256}
+                            height={256}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center bg-[#2C2C2C]">
+                            <span className="text-sm text-gray-400">Frame {index + 1}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
               
@@ -434,21 +496,17 @@ export default function Page() {
                             <DownloadIcon />
                           </a>
                         </Button>
-                        <Button size="icon" onClick={generateLogo} variant="secondary">
+                        <Button 
+                          size="icon" 
+                          onClick={() => generateSingleLogo(selectedImageIndex)} 
+                          variant="secondary"
+                        >
                           <Spinner loading={isLoading}>
                             <RefreshCwIcon />
                           </Spinner>
                         </Button>
                       </div>
                     </div>
-
-                    {generatedImages.length > 1 && (
-                      <ImageGrid
-                        images={generatedImages}
-                        selectedIndex={selectedImageIndex}
-                        onSelect={setSelectedImageIndex}
-                      />
-                    )}
                   </div>
                 ) : (
                   <Spinner loading={isLoading} className="size-8 text-white">
