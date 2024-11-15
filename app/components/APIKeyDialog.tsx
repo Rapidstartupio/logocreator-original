@@ -3,10 +3,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
+import { toast } from "@/hooks/use-toast";
 
 export function APIKeyDialog() {
   const { user } = useUser();
   const [apiKey, setApiKey] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -15,25 +17,43 @@ export function APIKeyDialog() {
   }, []);
 
   const handleSave = async () => {
-    if (apiKey) {
-      localStorage.setItem("userAPIKey", apiKey);
-    } else {
-      localStorage.removeItem("userAPIKey");
-    }
-    
-    // Update user metadata
-    await user?.update({
-      unsafeMetadata: {
-        hasApiKey: Boolean(apiKey),
-        ...(apiKey ? { remaining: "BYOK" } : { remaining: 3 }),
-      },
-    });
+    try {
+      if (apiKey && !apiKey.startsWith('tok_')) {
+        toast({
+          variant: "destructive",
+          title: "Invalid API Key",
+          description: "Together API keys should start with 'tok_'",
+        });
+        return;
+      }
 
-    window.location.reload(); // Refresh to update UI state
+      if (apiKey) {
+        localStorage.setItem("userAPIKey", apiKey);
+      } else {
+        localStorage.removeItem("userAPIKey");
+      }
+      
+      await user?.update({
+        unsafeMetadata: {
+          hasApiKey: Boolean(apiKey),
+          ...(apiKey ? { remaining: "BYOK" } : { remaining: 3 }),
+        },
+      });
+
+      setIsOpen(false);
+      window.location.reload();
+    } catch (error) {
+      console.error('Error saving API key:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to save API key settings",
+      });
+    }
   };
 
   return (
-    <Dialog>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button variant="ghost" className="w-full justify-start">
           API Key Settings
@@ -45,7 +65,7 @@ export function APIKeyDialog() {
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+            <label className="text-sm font-medium leading-none">
               API Key (Optional)
             </label>
             <Input
