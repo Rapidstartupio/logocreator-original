@@ -60,18 +60,19 @@ export default function Header({ className }: { className: string }) {
           </SignedOut>
           <SignedIn>
             {getCreditsDisplay()}
-            <UserButton 
-              afterSignOutUrl="/"
-              appearance={{
-                elements: {
-                  userButtonPopoverCard: "py-2",
-                  userButtonPopoverActions: "py-2",
-                  userButtonPopoverFooter: "hidden"
-                }
-              }}
-            >
+            <div className="flex items-center">
               <APIKeyDialog />
-            </UserButton>
+              <UserButton 
+                afterSignOutUrl="/"
+                appearance={{
+                  elements: {
+                    userButtonPopoverCard: "py-2",
+                    userButtonPopoverActions: "py-2",
+                    userButtonPopoverFooter: "hidden"
+                  }
+                }}
+              />
+            </div>
           </SignedIn>
         </div>
       </div>
