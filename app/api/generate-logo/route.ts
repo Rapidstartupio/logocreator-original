@@ -41,8 +41,16 @@ export async function POST(req: Request) {
 
   // Add rate limiting if Upstash API keys are set & no BYOK, otherwise skip
   if (process.env.UPSTASH_REDIS_REST_URL && !data.userAPIKey) {
+    // Add https:// prefix if not present
+    const redisUrl = process.env.UPSTASH_REDIS_REST_URL.startsWith('https://')
+      ? process.env.UPSTASH_REDIS_REST_URL
+      : `https://${process.env.UPSTASH_REDIS_REST_URL}`;
+
     ratelimit = new Ratelimit({
-      redis: Redis.fromEnv(),
+      redis: new Redis({
+        url: redisUrl,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN,
+      }),
       // Allow 3 requests per 2 months on prod
       limiter: Ratelimit.fixedWindow(30, "60 d"),
       analytics: true,
