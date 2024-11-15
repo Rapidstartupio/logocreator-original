@@ -29,7 +29,10 @@ export async function POST(req: Request) {
     .parse(json);
 
   // Add observability if a Helicone key is specified, otherwise skip
-  const options: ConstructorParameters<typeof Together>[0] = {};
+  const options: ConstructorParameters<typeof Together>[0] = {
+    apiKey: process.env.TOGETHER_API_KEY // Set default API key from env
+  };
+  
   if (process.env.HELICONE_API_KEY) {
     options.baseURL = "https://together.helicone.ai/v1";
     options.defaultHeaders = {
@@ -49,9 +52,10 @@ export async function POST(req: Request) {
     });
   }
 
+  // Create client with either user API key or env API key
   const client = new Together({
     ...options,
-    apiKey: data.userAPIKey || process.env.TOGETHER_API_KEY || '',
+    ...(data.userAPIKey ? { apiKey: data.userAPIKey } : {})
   });
 
   const clerkClientInstance = await clerkClient();
@@ -60,6 +64,7 @@ export async function POST(req: Request) {
       unsafeMetadata: {
         remaining: "BYOK",
         hasApiKey: true,
+        userAPIKey: data.userAPIKey // Store the actual key
       },
     });
   } else {
@@ -67,7 +72,8 @@ export async function POST(req: Request) {
     await clerkClientInstance.users.updateUserMetadata(user.id, {
       unsafeMetadata: {
         hasApiKey: false,
-        userAPIKey: undefined  // explicitly remove the API key
+        userAPIKey: null,  // explicitly set to null
+        remaining: undefined
       },
     });
   }
