@@ -10,11 +10,11 @@ const jura = Jura({
   variable: "--font-jura",
 });
 
-const title = "Logo-creator.io – Generate a logo";
+const title = "LogoX.ai – Generate a logo";
 const description = "Generate a logo for your company";
-const url = "https://www.logo-creator.io/";
+const url = "https://www.logoX.ai/";
 const ogimage = "https://www.logo-creator.io/og-image.png";
-const sitename = "logo-creator.io";
+const sitename = "logoX.ai";
 
 export const metadata: Metadata = {
   metadataBase: new URL(url),

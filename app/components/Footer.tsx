@@ -1,5 +1,5 @@
 import TwitterSVG from "../../public/twitter.svg";
-import GithubSVG from "../../public/Github.svg";
+import GithubSVG from "../../public/github.svg";
 import Image from "next/image";
 
 const Footer = () => (

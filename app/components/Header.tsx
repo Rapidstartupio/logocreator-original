@@ -1,5 +1,5 @@
-import Image from "next/image";
-import Link from "next/link";
+// import Image from "next/image";
+// import Link from "next/link";
 import {
   SignInButton,
   SignedIn,
@@ -17,7 +17,7 @@ export default function Header({ className }: { className: string }) {
       <div className="flex items-center justify-between bg-[#343434] px-4 py-2 md:mt-4">
         {/* Logo - left on mobile, centered on larger screens */}
         <div className="flex flex-grow justify-start xl:justify-center">
-          <Link href="https://dub.sh/together-ai" className="flex items-center">
+          {/*<Link href="https://dub.sh/together-ai" className="flex items-center">
             <Image
               src="together-ai-logo1.svg"
               alt="together.ai"
@@ -26,7 +26,7 @@ export default function Header({ className }: { className: string }) {
               className="w-[220px] md:w-[330px] lg:w-[390px]"
               priority
             />
-          </Link>
+          </Link>*/}
         </div>
         {/* Credits Section */}
         <div className="absolute right-8 flex items-center space-x-2 md:top-20 lg:top-8">
