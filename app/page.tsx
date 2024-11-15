@@ -464,7 +464,7 @@ export default function Page() {
         <div className="flex w-full flex-col pt-12 md:pt-0">
           <Header className="hidden md:block" />{" "}
           {/* Show header on larger screens */}
-          <div className="relative flex flex-grow items-center justify-center px-4">
+          <div className="relative flex flex-1 items-center justify-center px-4">
             <div className="flex w-full gap-4">
               {/* Preview frames for multiple images */}
               {numberOfImages !== "1" && (

@@ -63,23 +63,20 @@ export async function POST(req: Request) {
       },
     });
   } else {
+    // Completely clear all API key related metadata
     await clerkClientInstance.users.updateUserMetadata(user.id, {
       unsafeMetadata: {
+        remaining: ratelimit ? (await ratelimit.limit(user.id)).remaining : undefined,
         hasApiKey: false,
-        ...(ratelimit ? {} : { remaining: undefined }),
+        userAPIKey: undefined  // explicitly remove the API key
       },
     });
   }
 
-  if (ratelimit) {
-    const identifier = user.id;
-    const { success, remaining } = await ratelimit.limit(identifier);
-    (await clerkClient()).users.updateUserMetadata(user.id, {
-      unsafeMetadata: {
-        remaining,
-      },
-    });
-
+  // Move the rate limit check after metadata update
+  if (ratelimit && !data.userAPIKey) {  // Only check rate limit if not using custom API key
+    const { success, remaining } = await ratelimit.limit(user.id);
+    
     if (!success) {
       return new Response(
         "You've used up all your credits. Enter your own Together API Key to generate more logos.",
