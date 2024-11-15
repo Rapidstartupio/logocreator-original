@@ -462,13 +462,12 @@ export default function Page() {
         </div>
 
         <div className="flex w-full flex-col pt-12 md:pt-0">
-          <Header className="hidden md:block" />{" "}
-          {/* Show header on larger screens */}
+          <Header className="hidden md:block" />
           <div className="relative flex flex-1 items-center justify-center px-4">
-            <div className="flex w-full gap-4">
-              {/* Preview frames for multiple images */}
+            <div className="flex w-full max-w-[1200px] justify-center gap-8">
+              {/* Grid of smaller images - now centered */}
               {numberOfImages !== "1" && (
-                <div className={`w-64 flex flex-col gap-4`}>
+                <div className="flex w-64 items-center">
                   <div className={gridContainerClass[numberOfImages as "3" | "6"]}>
                     {Array.from({ length: parseInt(numberOfImages) }).map((_, index) => (
                       <div
@@ -488,9 +487,7 @@ export default function Page() {
                             className="h-full w-full object-cover"
                           />
                         ) : (
-                          <EmptyFrame 
-                            isNewFrame={index >= generatedImages.length} 
-                          />
+                          <EmptyFrame isNewFrame={index >= generatedImages.length} />
                         )}
                       </div>
                     ))}
@@ -498,56 +495,56 @@ export default function Page() {
                 </div>
               )}
               
-              {/* Main preview area */}
-              <div className="relative w-full max-w-lg">
-                {generatedImages.length > 0 ? (
-                  <div className="flex flex-col gap-4">
-                    <div className="relative aspect-square w-full">
-                      <Image
-                        className={`${isLoading ? "animate-pulse" : ""}`}
-                        width={512}
-                        height={512}
-                        src={`data:image/png;base64,${generatedImages[selectedImageIndex]}`}
-                        alt=""
-                      />
-                      <div
-                        className={`pointer-events-none absolute inset-0 transition ${
-                          isLoading ? "bg-black/50 duration-500" : "bg-black/0 duration-0"
-                        }`}
-                      />
+              {/* Main preview area - now centered */}
+              <div className="flex items-center justify-center">
+                <div className="relative w-full max-w-lg">
+                  {generatedImages.length > 0 ? (
+                    <div className="flex flex-col gap-4">
+                      <div className="relative aspect-square w-full">
+                        <Image
+                          className={`${isLoading ? "animate-pulse" : ""} rounded-lg`}
+                          width={512}
+                          height={512}
+                          src={`data:image/png;base64,${generatedImages[selectedImageIndex]}`}
+                          alt=""
+                        />
+                        <div
+                          className={`pointer-events-none absolute inset-0 transition ${
+                            isLoading ? "bg-black/50 duration-500" : "bg-black/0 duration-0"
+                          }`}
+                        />
 
-                      <div className="absolute -right-12 top-0 flex flex-col gap-2">
-                        <Button size="icon" variant="secondary" asChild>
-                          <a
-                            href={`data:image/png;base64,${generatedImages[selectedImageIndex]}`}
-                            download="logo.png"
+                        <div className="absolute -right-12 top-0 flex flex-col gap-2">
+                          <Button size="icon" variant="secondary" asChild>
+                            <a
+                              href={`data:image/png;base64,${generatedImages[selectedImageIndex]}`}
+                              download="logo.png"
+                            >
+                              <DownloadIcon />
+                            </a>
+                          </Button>
+                          <Button 
+                            size="icon" 
+                            onClick={() => generateSingleLogo(selectedImageIndex)} 
+                            variant="secondary"
                           >
-                            <DownloadIcon />
-                          </a>
-                        </Button>
-                        <Button 
-                          size="icon" 
-                          onClick={() => generateSingleLogo(selectedImageIndex)} 
-                          variant="secondary"
-                        >
-                          <Spinner loading={isLoading}>
-                            <RefreshCwIcon />
-                          </Spinner>
-                        </Button>
+                            <Spinner loading={isLoading}>
+                              <RefreshCwIcon />
+                            </Spinner>
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  <Spinner loading={isLoading} className="size-8 text-white">
-                    <div className="flex aspect-square w-full flex-col items-center justify-center rounded-xl bg-[#2C2C2C]">
-                      <h4 className="text-center text-base leading-tight text-white">
-                        Generate your dream
-                        <br />
-                        logo in 10 seconds!
-                      </h4>
-                    </div>
-                  </Spinner>
-                )}
+                  ) : (
+                    <Spinner loading={isLoading} className="size-8 text-white">
+                      <div className="flex aspect-square w-full flex-col items-center justify-center rounded-xl bg-[#2C2C2C]">
+                        <h4 className="text-center text-base leading-tight text-white">
+                          Generate your dream<br />logo in 10 seconds!
+                        </h4>
+                      </div>
+                    </Spinner>
+                  )}
+                </div>
               </div>
             </div>
           </div>
