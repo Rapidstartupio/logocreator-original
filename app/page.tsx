@@ -81,12 +81,6 @@ const EmptyFrame = ({ isNewFrame }: { isNewFrame: boolean }) => (
 );
 
 export default function Page() {
-  const [userAPIKey, setUserAPIKey] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("userAPIKey") || "";
-    }
-    return "";
-  });
   const [companyName, setCompanyName] = useState("");
   const [selectedLayout, setSelectedLayout] = useState(layouts[0].name);
   const [selectedStyle, setSelectedStyle] = useState(logoStyles[0].name);
@@ -104,12 +98,6 @@ export default function Page() {
 
   const { isSignedIn, isLoaded, user } = useUser();
 
-  const handleAPIKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setUserAPIKey(newValue);
-    localStorage.setItem("userAPIKey", newValue);
-  };
-
   // Update the generateLogo function to handle single image refresh
   async function generateSingleLogo(frameIndex: number) {
     if (!isSignedIn) return;
@@ -119,7 +107,7 @@ export default function Page() {
     const res = await fetch("/api/generate-logo", {
       method: "POST",
       body: JSON.stringify({
-        userAPIKey,
+        userAPIKey: "",
         companyName,
         selectedLayout,
         selectedStyle,
@@ -164,7 +152,7 @@ export default function Page() {
     setSelectedImageIndex(0);
 
     const requestBody = {
-      userAPIKey,
+      userAPIKey: "",
       companyName,
       selectedLayout,
       selectedStyle,
@@ -224,26 +212,6 @@ export default function Page() {
             <fieldset className="flex grow flex-col" disabled={!isSignedIn}>
               <div className="flex-grow overflow-y-auto">
                 <div className="px-8 pb-0 pt-4 md:px-6 md:pt-6">
-                  {/* API Key Section */}
-                  <div className="mb-6">
-                    <label
-                      htmlFor="api-key"
-                      className="mb-2 block text-xs font-bold uppercase text-[#F3F3F3]"
-                    >
-                      TOGETHER API KEY
-                      <span className="ml-2 text-xs uppercase text-[#6F6F6F]">
-                        [OPTIONAL]
-                      </span>
-                    </label>
-                    <Input
-                      value={userAPIKey}
-                      onChange={handleAPIKeyChange}
-                      placeholder="API Key"
-                      type="password"
-                    />
-                  </div>
-                  <div className="-mx-6 mb-6 h-px w-[calc(100%+48px)] bg-[#343434]"></div>
-                  
                   {/* Company Name Section */}
                   <div className="mb-6">
                     <label
@@ -497,7 +465,7 @@ export default function Page() {
               
               {/* Main preview area - now centered */}
               <div className="flex items-center justify-center">
-                <div className="relative w-full max-w-lg">
+                <div className="relative aspect-square w-full max-w-lg">
                   {generatedImages.length > 0 ? (
                     <div className="flex flex-col gap-4">
                       <div className="relative aspect-square w-full">
