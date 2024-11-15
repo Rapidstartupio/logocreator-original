@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     .object({
       userAPIKey: z.string().optional(),
       companyName: z.string(),
-      // selectedLayout: z.string(),
+      selectedLayout: z.string(),
       selectedStyle: z.string(),
       selectedPrimaryColor: z.string(),
       selectedBackgroundColor: z.string(),
@@ -106,9 +106,17 @@ export async function POST(req: Request) {
     Minimal: minimalStyle,
   };
 
+  const layoutLookup: Record<string, string> = {
+    Solo: "Create a single, centered logo design",
+    Side: "Create a logo with text on the side of the icon",
+    Stack: "Create a stacked logo with the icon above the text",
+  };
+
   const prompt = dedent`A single logo, high-quality, award-winning professional design, made for both digital and print media, only contains a few vector shapes, ${styleLookup[data.selectedStyle]}
 
-  Primary color is ${data.selectedPrimaryColor.toLowerCase()} and background color is ${data.selectedBackgroundColor.toLowerCase()}. The company name is ${data.companyName}, make sure to include the company name in the logo. ${data.additionalInfo ? `Additional info: ${data.additionalInfo}` : ""}`;
+${layoutLookup[data.selectedLayout]}
+
+Primary color is ${data.selectedPrimaryColor.toLowerCase()} and background color is ${data.selectedBackgroundColor.toLowerCase()}. The company name is ${data.companyName}, make sure to include the company name in the logo. ${data.additionalInfo ? `Additional info: ${data.additionalInfo}` : ""}`;
 
   try {
     const response = await client.images.create({
