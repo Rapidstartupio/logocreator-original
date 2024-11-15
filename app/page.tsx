@@ -54,6 +54,13 @@ const backgroundColors = [
   { name: "Black", color: "#000000" },
 ];
 
+// Add this CSS class to handle the grid layout for multiple images
+const gridContainerClass = {
+  "1": "",
+  "3": "grid grid-cols-1 gap-4",
+  "6": "grid grid-cols-3 grid-rows-2 gap-4"
+};
+
 export default function Page() {
   const [userAPIKey, setUserAPIKey] = useState(() => {
     if (typeof window !== "undefined") {
@@ -165,6 +172,8 @@ export default function Page() {
                     />
                   </div>
                   <div className="-mx-6 mb-6 h-px w-[calc(100%+48px)] bg-[#343434]"></div>
+                  
+                  {/* Company Name Section */}
                   <div className="mb-6">
                     <label
                       htmlFor="company-name"
@@ -179,6 +188,15 @@ export default function Page() {
                       required
                     />
                   </div>
+
+                  {/* Number selector */}
+                  <div className="mb-6">
+                    <NumberSelector 
+                      value={numberOfImages} 
+                      onValueChange={setNumberOfImages} 
+                    />
+                  </div>
+                  
                   {/* Layout Section */}
                   <div className="mb-6">
                     <label className="mb-2 flex items-center text-xs font-bold uppercase text-[#6F6F6F]">
@@ -315,13 +333,6 @@ export default function Page() {
                       </div>
                     </div>
                   </div>
-                  {/* Number of Images Section */}
-                  <div className="mb-6">
-                    <NumberSelector 
-                      value={numberOfImages} 
-                      onValueChange={setNumberOfImages} 
-                    />
-                  </div>
                 </div>
               </div>
               <div className="px-8 py-4 md:px-6 md:py-6">
@@ -383,59 +394,74 @@ export default function Page() {
           <Header className="hidden md:block" />{" "}
           {/* Show header on larger screens */}
           <div className="relative flex flex-grow items-center justify-center px-4">
-            <div className="relative w-full max-w-lg">
-              {generatedImages.length > 0 ? (
-                <div className="flex flex-col gap-4">
-                  <div className="relative aspect-square w-full">
-                    <Image
-                      className={`${isLoading ? "animate-pulse" : ""}`}
-                      width={512}
-                      height={512}
-                      src={`data:image/png;base64,${generatedImages[selectedImageIndex]}`}
-                      alt=""
-                    />
+            <div className="flex w-full gap-4">
+              {/* Preview frames for multiple images */}
+              {numberOfImages !== "1" && (
+                <div className={`w-64 ${gridContainerClass[numberOfImages as "3" | "6"]}`}>
+                  {Array.from({ length: parseInt(numberOfImages) }).map((_, index) => (
                     <div
-                      className={`pointer-events-none absolute inset-0 transition ${
-                        isLoading ? "bg-black/50 duration-500" : "bg-black/0 duration-0"
-                      }`}
+                      key={index}
+                      className="aspect-square w-full rounded-lg border border-dashed border-gray-600 bg-[#2C2C2C]"
                     />
-
-                    <div className="absolute -right-12 top-0 flex flex-col gap-2">
-                      <Button size="icon" variant="secondary" asChild>
-                        <a
-                          href={`data:image/png;base64,${generatedImages[selectedImageIndex]}`}
-                          download="logo.png"
-                        >
-                          <DownloadIcon />
-                        </a>
-                      </Button>
-                      <Button size="icon" onClick={generateLogo} variant="secondary">
-                        <Spinner loading={isLoading}>
-                          <RefreshCwIcon />
-                        </Spinner>
-                      </Button>
-                    </div>
-                  </div>
-
-                  {generatedImages.length > 1 && (
-                    <ImageGrid
-                      images={generatedImages}
-                      selectedIndex={selectedImageIndex}
-                      onSelect={setSelectedImageIndex}
-                    />
-                  )}
+                  ))}
                 </div>
-              ) : (
-                <Spinner loading={isLoading} className="size-8 text-white">
-                  <div className="flex aspect-square w-full flex-col items-center justify-center rounded-xl bg-[#2C2C2C]">
-                    <h4 className="text-center text-base leading-tight text-white">
-                      Generate your dream
-                      <br />
-                      logo in 10 seconds!
-                    </h4>
-                  </div>
-                </Spinner>
               )}
+              
+              {/* Main preview area */}
+              <div className="relative w-full max-w-lg">
+                {generatedImages.length > 0 ? (
+                  <div className="flex flex-col gap-4">
+                    <div className="relative aspect-square w-full">
+                      <Image
+                        className={`${isLoading ? "animate-pulse" : ""}`}
+                        width={512}
+                        height={512}
+                        src={`data:image/png;base64,${generatedImages[selectedImageIndex]}`}
+                        alt=""
+                      />
+                      <div
+                        className={`pointer-events-none absolute inset-0 transition ${
+                          isLoading ? "bg-black/50 duration-500" : "bg-black/0 duration-0"
+                        }`}
+                      />
+
+                      <div className="absolute -right-12 top-0 flex flex-col gap-2">
+                        <Button size="icon" variant="secondary" asChild>
+                          <a
+                            href={`data:image/png;base64,${generatedImages[selectedImageIndex]}`}
+                            download="logo.png"
+                          >
+                            <DownloadIcon />
+                          </a>
+                        </Button>
+                        <Button size="icon" onClick={generateLogo} variant="secondary">
+                          <Spinner loading={isLoading}>
+                            <RefreshCwIcon />
+                          </Spinner>
+                        </Button>
+                      </div>
+                    </div>
+
+                    {generatedImages.length > 1 && (
+                      <ImageGrid
+                        images={generatedImages}
+                        selectedIndex={selectedImageIndex}
+                        onSelect={setSelectedImageIndex}
+                      />
+                    )}
+                  </div>
+                ) : (
+                  <Spinner loading={isLoading} className="size-8 text-white">
+                    <div className="flex aspect-square w-full flex-col items-center justify-center rounded-xl bg-[#2C2C2C]">
+                      <h4 className="text-center text-base leading-tight text-white">
+                        Generate your dream
+                        <br />
+                        logo in 10 seconds!
+                      </h4>
+                    </div>
+                  </Spinner>
+                )}
+              </div>
             </div>
           </div>
           <Footer />
