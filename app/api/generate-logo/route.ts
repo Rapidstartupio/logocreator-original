@@ -8,10 +8,13 @@ import { z } from "zod";
 let ratelimit: Ratelimit | undefined;
 
 export async function POST(req: Request) {
-  console.log('Environment check:', {
-    hasTogetherKey: Boolean(process.env.TOGETHER_API_KEY),
-    keyLength: process.env.TOGETHER_API_KEY?.length,
-    envKeys: Object.keys(process.env).filter(key => key.includes('TOGETHER')),
+  // Add detailed environment logging at the start
+  const envKey = process.env.TOGETHER_API_KEY;
+  console.log('Environment variables check:', {
+    hasTogetherKey: Boolean(envKey),
+    keyFirstChars: envKey ? `${envKey.substring(0, 4)}...` : 'none',
+    keyLength: envKey?.length,
+    allEnvKeys: Object.keys(process.env),
   });
 
   const user = await currentUser();
@@ -21,7 +24,7 @@ export async function POST(req: Request) {
   }
 
   const json = await req.json();
-  console.log('Received request body:', json); // Debug log
+  console.log('Request body:', json);
 
   const data = z
     .object({
@@ -60,15 +63,22 @@ export async function POST(req: Request) {
     };
   }
 
-  // Create the client with either user API key or keep the default env key
+  // Log the final API key being used (first few chars only)
+  const finalApiKey = data.userAPIKey || process.env.TOGETHER_API_KEY;
+  console.log('Final API key check:', {
+    source: data.userAPIKey ? 'user' : 'environment',
+    keyExists: Boolean(finalApiKey),
+    keyFirstChars: finalApiKey ? `${finalApiKey.substring(0, 4)}...` : 'none',
+    keyLength: finalApiKey?.length
+  });
+
+  // Create the client with logging
   const client = new Together({
     ...options,
     ...(data.userAPIKey ? { apiKey: data.userAPIKey } : {})
   });
 
-  // Add debug logging
-  console.log('Using API key from:', data.userAPIKey ? 'User' : 'Environment');
-  console.log('Environment API key exists:', Boolean(process.env.TOGETHER_API_KEY));
+  console.log('Client created with key from:', data.userAPIKey ? 'user' : 'environment');
 
   const clerkClientInstance = await clerkClient();
   if (data.userAPIKey) {
