@@ -152,18 +152,25 @@ export default function Page() {
     setGeneratedImages([]);
     setSelectedImageIndex(0);
 
+    const requestBody = {
+      userAPIKey,
+      companyName,
+      selectedLayout,
+      selectedStyle,
+      selectedPrimaryColor,
+      selectedBackgroundColor,
+      additionalInfo,
+      numberOfImages: parseInt(numberOfImages),
+    };
+
+    console.log('Request body:', requestBody); // Debug log
+
     const res = await fetch("/api/generate-logo", {
       method: "POST",
-      body: JSON.stringify({
-        userAPIKey,
-        companyName,
-        selectedLayout,
-        selectedStyle,
-        selectedPrimaryColor,
-        selectedBackgroundColor,
-        additionalInfo,
-        numberOfImages: parseInt(numberOfImages),
-      }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
     });
 
     if (res.ok) {
@@ -171,10 +178,18 @@ export default function Page() {
       setGeneratedImages(images);
       await user.reload();
     } else {
+      // Add more detailed error logging
+      const errorText = await res.text();
+      console.error('API Error:', {
+        status: res.status,
+        statusText: res.statusText,
+        body: errorText,
+      });
+
       toast({
         variant: "destructive",
-        title: "Whoops!",
-        description: `There was a problem processing your request: ${res.statusText}`,
+        title: "Error generating logo",
+        description: `Error: ${res.status} - ${errorText}`,
       });
     }
 
