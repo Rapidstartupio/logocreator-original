@@ -46,8 +46,12 @@ export function APIKeyDialog() {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" className="w-full justify-start">
-          API Key Settings
+        <Button 
+          variant="ghost" 
+          size="sm"
+          className="mr-2"
+        >
+          API Key
         </Button>
       </DialogTrigger>
       <DialogContent>
