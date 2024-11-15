@@ -49,13 +49,24 @@ export async function POST(req: Request) {
     });
   }
 
-  const client = new Together(options);
+  const client = new Together({
+    ...options,
+    apiKey: data.userAPIKey || process.env.TOGETHER_API_KEY || '',
+  });
 
+  const clerkClientInstance = await clerkClient();
   if (data.userAPIKey) {
-    client.apiKey = data.userAPIKey;
-    (await clerkClient()).users.updateUserMetadata(user.id, {
+    await clerkClientInstance.users.updateUserMetadata(user.id, {
       unsafeMetadata: {
         remaining: "BYOK",
+        hasApiKey: true,
+      },
+    });
+  } else {
+    await clerkClientInstance.users.updateUserMetadata(user.id, {
+      unsafeMetadata: {
+        hasApiKey: false,
+        ...(ratelimit ? {} : { remaining: undefined }),
       },
     });
   }
