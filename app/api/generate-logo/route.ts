@@ -28,17 +28,32 @@ export async function POST(req: Request) {
     })
     .parse(json);
 
+  // Add API key validation
+  if (data.userAPIKey && !data.userAPIKey.startsWith('tok_')) {
+    return new Response(
+      "Invalid API key format. Together API keys should start with 'tok_'",
+      {
+        status: 400,
+        headers: { "Content-Type": "text/plain" },
+      }
+    );
+  }
+
   // Add observability if a Helicone key is specified, otherwise skip
   const options: ConstructorParameters<typeof Together>[0] = {
     apiKey: process.env.TOGETHER_API_KEY // Set default API key from env
   };
-  
-  if (process.env.HELICONE_API_KEY) {
-    options.baseURL = "https://together.helicone.ai/v1";
-    options.defaultHeaders = {
-      "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
-      "Helicone-Property-LOGOBYOK": data.userAPIKey ? "true" : "false",
-    };
+
+  // Validate environment API key
+  if (!options.apiKey?.startsWith('tok_')) {
+    console.error('Invalid Together API key format in environment variables');
+    return new Response(
+      "Server configuration error",
+      {
+        status: 500,
+        headers: { "Content-Type": "text/plain" },
+      }
+    );
   }
 
   // Add rate limiting if Upstash API keys are set & no BYOK, otherwise skip
@@ -52,10 +67,9 @@ export async function POST(req: Request) {
     });
   }
 
-  // Create client with either user API key or env API key
   const client = new Together({
     ...options,
-    ...(data.userAPIKey ? { apiKey: data.userAPIKey } : {})
+    apiKey: data.userAPIKey || process.env.TOGETHER_API_KEY || '',
   });
 
   const clerkClientInstance = await clerkClient();
@@ -64,16 +78,18 @@ export async function POST(req: Request) {
       unsafeMetadata: {
         remaining: "BYOK",
         hasApiKey: true,
-        userAPIKey: data.userAPIKey // Store the actual key
       },
     });
   } else {
-    // Completely clear all API key related metadata
+    // Clear API key related metadata and reset to default credits if not already set
     await clerkClientInstance.users.updateUserMetadata(user.id, {
       unsafeMetadata: {
         hasApiKey: false,
-        userAPIKey: null,  // explicitly set to null
-        remaining: undefined
+        // Only set remaining if using rate limit
+        ...(ratelimit 
+          ? {} // Let the rate limit handler set the remaining count
+          : { remaining: 3 } // Reset to default credits if no rate limit
+        ),
       },
     });
   }
