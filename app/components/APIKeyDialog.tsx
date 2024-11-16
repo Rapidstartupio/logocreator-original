@@ -16,6 +16,17 @@ export function APIKeyDialog() {
     }
   }, []);
 
+  useEffect(() => {
+    // Check for pending logo data after successful sign-up
+    const pendingLogoData = localStorage.getItem('pendingLogoData')
+    if (pendingLogoData) {
+      // Here you would typically:
+      // 1. Save the logo to the user's account
+      // 2. Clear the pending data
+      localStorage.removeItem('pendingLogoData')
+    }
+  }, [])
+
   const handleSave = async () => {
     try {
       if (apiKey) {
