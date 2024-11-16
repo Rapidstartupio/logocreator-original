@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { RefreshCw, Loader2, DownloadIcon } from 'lucide-react'
 import Image from "next/image"
-import { useRouter } from 'next/navigation'
+import { SignInButton } from "@clerk/nextjs"
 
 type Question = {
   id: number
@@ -27,7 +27,6 @@ interface FormData {
 }
 
 export default function LogoQuestionnaire() {
-  const router = useRouter()
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [direction, setDirection] = useState(0)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -107,28 +106,32 @@ export default function LogoQuestionnaire() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          companyName: formData.companyName,
+          selectedLayout: formData.layout,
+          selectedStyle: formData.style,
+          selectedPrimaryColor: formData.primaryColor,
+          selectedBackgroundColor: formData.backgroundColor,
+          additionalInfo: formData.additionalInfo,
+          numberOfImages: 1
+        }),
       })
 
       if (res.ok) {
         const data = await res.json()
         setFormData(prev => ({
           ...prev,
-          generatedLogoUrl: data[0].url
+          generatedLogoUrl: `data:image/png;base64,${data[0]}`
         }))
         setShowResult(true)
       } else {
-        console.error('Failed to generate demo logo')
+        const errorText = await res.text()
+        console.error('Failed to generate demo logo:', errorText)
       }
     } catch (error) {
       console.error('Error generating demo logo:', error)
     }
     setIsGenerating(false)
-  }
-
-  const handleSignUp = () => {
-    localStorage.setItem('pendingLogoData', JSON.stringify(formData))
-    router.push('/sign-up')
   }
 
   const QuestionContent = ({ question }: { question: Question }) => {
@@ -306,14 +309,18 @@ export default function LogoQuestionnaire() {
             <RefreshCw className="mr-2 h-4 w-4" />
             Regenerate
           </Button>
-          <Button 
-            size="lg" 
-            onClick={handleSignUp}
-            className="font-semibold bg-blue-600 hover:bg-blue-700"
-          >
-            <DownloadIcon className="mr-2 h-4 w-4" />
-            Download Logo
-          </Button>
+          <SignInButton>
+            <Button 
+              size="lg" 
+              className="font-semibold bg-blue-600 hover:bg-blue-700"
+              onClick={() => {
+                localStorage.setItem('pendingLogoData', JSON.stringify(formData))
+              }}
+            >
+              <DownloadIcon className="mr-2 h-4 w-4" />
+              Download Logo
+            </Button>
+          </SignInButton>
         </div>
       </div>
     )
