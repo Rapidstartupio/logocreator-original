@@ -7,8 +7,8 @@ const Footer = () => (
     <div className="mb-2 flex-grow pl-0 text-center md:mb-0 md:pl-0 lg:pl-48">
       <span className="text-sm text-[#6F6F6F]">
         Powered by{" "}
-        <a href="https://dub.sh/together-ai" className="underline">
-          Together.ai
+        <a href="https://rapidagent.ai" className="underline">
+          RapidAgent.ai
         </a>{" "}
         &{" "}
         <a href="https://dub.sh/flux-playground" className="underline">

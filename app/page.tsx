@@ -195,11 +195,11 @@ export default function Page() {
   }
 
   return (
-    <div className="flex h-screen flex-col overflow-y-auto overflow-x-hidden bg-[#343434] md:flex-row">
+    <div className="flex min-h-screen flex-col overflow-hidden bg-[#343434] md:flex-row">
       <Header className="block md:hidden" />
 
       <div className="flex w-full flex-col md:flex-row">
-        <div className="relative flex h-full w-full flex-col bg-[#2C2C2C] text-[#F3F3F3] md:max-w-sm">
+        <div className="relative flex h-[calc(100vh-64px)] w-full flex-col bg-[#2C2C2C] text-[#F3F3F3] md:h-screen md:max-w-sm md:overflow-y-auto">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -428,9 +428,9 @@ export default function Page() {
           )}
         </div>
 
-        <div className="flex w-full flex-col pt-12 md:pt-0">
+        <div className="flex w-full flex-col md:min-h-screen">
           <Header className="hidden md:block" />
-          <div className="relative flex flex-grow items-center justify-center px-4">
+          <div className="relative flex flex-1 items-center justify-center px-4 py-8">
             <div className="flex w-full max-w-[1200px] justify-center gap-8">
               {/* Grid of smaller images - now centered */}
               {numberOfImages !== "1" && (
