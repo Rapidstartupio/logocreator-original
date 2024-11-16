@@ -109,7 +109,7 @@ export default function LogoQuestionnaire() {
 
   const handleSignUp = () => {
     localStorage.setItem('pendingLogoData', JSON.stringify(formData))
-    router.push('/auth/signup')
+    router.push('/auth/signup?redirect_url=/dashboard')
   }
 
   const QuestionContent = ({ question }: { question: Question }) => {
