@@ -99,17 +99,36 @@ export default function LogoQuestionnaire() {
     }
   }
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     setIsGenerating(true)
-    setTimeout(() => {
-      setIsGenerating(false)
-      setShowResult(true)
-    }, 2000)
+    try {
+      const res = await fetch('/api/demo/generate-logo', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        setFormData(prev => ({
+          ...prev,
+          generatedLogoUrl: data[0].url
+        }))
+        setShowResult(true)
+      } else {
+        console.error('Failed to generate demo logo')
+      }
+    } catch (error) {
+      console.error('Error generating demo logo:', error)
+    }
+    setIsGenerating(false)
   }
 
   const handleSignUp = () => {
     localStorage.setItem('pendingLogoData', JSON.stringify(formData))
-    router.push('/auth/signup?redirect_url=/dashboard')
+    router.push('/sign-up')
   }
 
   const QuestionContent = ({ question }: { question: Question }) => {
@@ -119,8 +138,16 @@ export default function LogoQuestionnaire() {
           <Input
             placeholder="Enter your company name"
             value={formData.companyName}
-            onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+            onChange={(e) => {
+              e.preventDefault()
+              const newValue = e.target.value
+              setFormData(prev => ({
+                ...prev,
+                companyName: newValue
+              }))
+            }}
             className="text-lg p-6 bg-gray-800 border-gray-700 text-white placeholder-gray-400"
+            autoFocus
           />
         )
       case "number":
@@ -256,7 +283,7 @@ export default function LogoQuestionnaire() {
       <div className="min-h-[600px] flex flex-col items-center justify-center p-6 bg-gray-900 text-white">
         <div className="relative mb-8">
           <img
-            src="/placeholder.svg"
+            src={formData.generatedLogoUrl || "/placeholder.svg"}
             alt="Generated Logo"
             className="w-64 h-64 rounded-xl shadow-lg"
           />
@@ -295,7 +322,7 @@ export default function LogoQuestionnaire() {
   return (
     <div className="min-h-[600px] flex flex-col items-center justify-center p-6 bg-gray-900 text-white">
       <div className="w-full max-w-2xl">
-        <AnimatePresence mode="wait" custom={direction}>
+        <AnimatePresence initial={false} mode="wait" custom={direction}>
           <motion.div
             key={currentQuestion}
             custom={direction}
