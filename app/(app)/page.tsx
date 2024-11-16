@@ -19,11 +19,11 @@ import * as RadioGroup from "@radix-ui/react-radio-group";
 import { DownloadIcon, RefreshCwIcon } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
-import Header from "./components/Header";
-import Footer from "./components/Footer";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
 import { domain } from "@/app/lib/domain";
-import InfoTooltip from "./components/InfoToolTip";
-import { NumberSelector } from "./components/NumberSelector";
+import InfoTooltip from "../components/InfoToolTip";
+import { NumberSelector } from "../components/NumberSelector";
 import { cn } from "@/lib/utils";
 
 const layouts = [
