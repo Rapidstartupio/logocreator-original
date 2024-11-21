@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -42,12 +42,6 @@ export default function LogoQuestionnaire() {
   })
 
   const { isSignedIn } = useUser()
-
-  useEffect(() => {
-    if (formData.generatedLogoUrl) {
-      window.location.href = "/dashboard"
-    }
-  }, [formData.generatedLogoUrl])
 
   const questions: Question[] = [
     { id: 0, title: "What's Your Company Name?", type: "input" },
@@ -148,13 +142,13 @@ export default function LogoQuestionnaire() {
         ...formData,
         timestamp: Date.now()
       }))
-      if (!isSignedIn) {
+      if (isSignedIn) {
+        window.location.href = "/dashboard"
+      } else {
         RedirectToSignIn({ 
           afterSignInUrl: "/dashboard",
           afterSignUpUrl: "/dashboard"
         })
-      } else {
-        window.location.href = "/dashboard"
       }
     }
   }
