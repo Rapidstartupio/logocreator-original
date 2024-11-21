@@ -4,6 +4,7 @@ import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "@/app/components/ui/toaster";
 import PlausibleProvider from "next-plausible";
+import { useAuthInit } from './lib/auth-init';
 
 const jura = Jura({
   subsets: ["latin"],
@@ -45,6 +46,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  useAuthInit();
+
   return (
     <ClerkProvider>
       <html lang="en" className="h-full">

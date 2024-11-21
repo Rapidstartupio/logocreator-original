@@ -6,11 +6,11 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode
 }) {
-  const session = await auth()
+  const { userId } = await auth()
   
-  if (!session.userId) {
+  if (!userId) {
     redirect('/')
   }
 
-  return children
+  return <div className="min-h-screen bg-gray-900">{children}</div>
 } 
