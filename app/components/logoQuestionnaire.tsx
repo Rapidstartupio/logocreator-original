@@ -1,13 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { RefreshCw, Loader2, DownloadIcon } from 'lucide-react'
 import Image from "next/image"
-import { SignInButton } from "@clerk/nextjs"
+import { useUser, RedirectToSignIn } from "@clerk/nextjs"
 
 type Question = {
   id: number
@@ -40,6 +40,14 @@ export default function LogoQuestionnaire() {
     backgroundColor: "white",
     additionalInfo: "",
   })
+
+  const { isSignedIn } = useUser()
+
+  useEffect(() => {
+    if (formData.generatedLogoUrl) {
+      window.location.href = "/dashboard"
+    }
+  }, [formData.generatedLogoUrl])
 
   const questions: Question[] = [
     { id: 0, title: "What's Your Company Name?", type: "input" },
@@ -132,6 +140,20 @@ export default function LogoQuestionnaire() {
       console.error('Error generating demo logo:', error)
     }
     setIsGenerating(false)
+  }
+
+  const handleDownload = () => {
+    if (formData.generatedLogoUrl) {
+      localStorage.setItem('pendingLogoData', JSON.stringify({
+        ...formData,
+        timestamp: Date.now()
+      }))
+      if (!isSignedIn) {
+        RedirectToSignIn({ redirectUrl: "/dashboard" })
+      } else {
+        window.location.href = "/dashboard"
+      }
+    }
   }
 
   const QuestionContent = ({ question }: { question: Question }) => {
@@ -309,24 +331,14 @@ export default function LogoQuestionnaire() {
             <RefreshCw className="mr-2 h-4 w-4" />
             Regenerate
           </Button>
-          <SignInButton mode="modal">
-            <Button 
-              size="lg" 
-              className="font-semibold bg-blue-600 hover:bg-blue-700"
-              onClick={() => {
-                if (formData.generatedLogoUrl) {
-                  localStorage.setItem('pendingLogoData', JSON.stringify({
-                    ...formData,
-                    timestamp: Date.now()
-                  }))
-                  window.location.href = "/dashboard"
-                }
-              }}
-            >
-              <DownloadIcon className="mr-2 h-4 w-4" />
-              Download Logo
-            </Button>
-          </SignInButton>
+          <Button 
+            size="lg" 
+            className="font-semibold bg-blue-600 hover:bg-blue-700"
+            onClick={handleDownload}
+          >
+            <DownloadIcon className="mr-2 h-4 w-4" />
+            {isSignedIn ? "Download Logo" : "Sign In to Download"}
+          </Button>
         </div>
       </div>
     )

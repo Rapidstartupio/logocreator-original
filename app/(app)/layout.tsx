@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Jura } from "next/font/google";
-import "./globals.css";
+import "../globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "@/app/components/ui/toaster";
 import PlausibleProvider from "next-plausible";

@@ -2,7 +2,7 @@ import LogoQuestionnaire from "@/components/logoQuestionnaire"
 import Footer from "@/components/Footer"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { SignInButton } from "@clerk/nextjs"
+import { SignInButton, UserButton, SignedIn, SignedOut } from "@clerk/nextjs"
 
 export default function LandingPage() {
   return (
@@ -12,11 +12,18 @@ export default function LandingPage() {
           <Link href="/" className="text-white text-xl font-bold">
             Logo AI
           </Link>
-          <SignInButton mode="modal">
-            <Button variant="outline" className="bg-gray-800 border-gray-700 hover:bg-gray-700 text-white">
-              Sign In
-            </Button>
-          </SignInButton>
+          <div>
+            <SignedOut>
+              <SignInButton mode="modal">
+                <Button variant="outline" className="bg-gray-800 border-gray-700 hover:bg-gray-700 text-white">
+                  Sign In
+                </Button>
+              </SignInButton>
+            </SignedOut>
+            <SignedIn>
+              <UserButton afterSignOutUrl="/" />
+            </SignedIn>
+          </div>
         </div>
       </header>
 
