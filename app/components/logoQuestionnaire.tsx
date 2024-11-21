@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { RefreshCw, Loader2, DownloadIcon } from 'lucide-react'
 import Image from "next/image"
-import { useUser, RedirectToSignIn } from "@clerk/nextjs"
+import { SignInButton, useUser } from "@clerk/nextjs"
 
 type Question = {
   id: number
@@ -41,15 +41,14 @@ export default function LogoQuestionnaire() {
     additionalInfo: "",
   })
 
-  const { isSignedIn } = useUser()
+  const { isSignedIn } = useUser();
 
   const questions: Question[] = [
     { id: 0, title: "What's Your Company Name?", type: "input" },
-    { id: 1, title: "How Many Images Would You Like?", type: "number" },
-    { id: 2, title: "Choose Your Layout", type: "layout" },
-    { id: 3, title: "Select Your Style", type: "style" },
-    { id: 4, title: "Pick Your Colors", type: "color" },
-    { id: 5, title: "Additional Information (Optional)", type: "textarea" },
+    { id: 1, title: "Choose Your Layout", type: "layout" },
+    { id: 2, title: "Select Your Style", type: "style" },
+    { id: 3, title: "Pick Your Colors", type: "color" },
+    { id: 4, title: "Additional Information (Optional)", type: "textarea" },
   ]
 
   const slideVariants = {
@@ -134,23 +133,6 @@ export default function LogoQuestionnaire() {
       console.error('Error generating demo logo:', error)
     }
     setIsGenerating(false)
-  }
-
-  const handleDownload = () => {
-    if (formData.generatedLogoUrl) {
-      localStorage.setItem('pendingLogoData', JSON.stringify({
-        ...formData,
-        timestamp: Date.now()
-      }))
-      if (isSignedIn) {
-        window.location.href = "/dashboard"
-      } else {
-        RedirectToSignIn({ 
-          afterSignInUrl: "/dashboard",
-          afterSignUpUrl: "/dashboard"
-        })
-      }
-    }
   }
 
   const QuestionContent = ({ question }: { question: Question }) => {
@@ -328,14 +310,42 @@ export default function LogoQuestionnaire() {
             <RefreshCw className="mr-2 h-4 w-4" />
             Regenerate
           </Button>
-          <Button 
-            size="lg" 
-            className="font-semibold bg-blue-600 hover:bg-blue-700"
-            onClick={handleDownload}
-          >
-            <DownloadIcon className="mr-2 h-4 w-4" />
-            {isSignedIn ? "Download Logo" : "Sign In to Download"}
-          </Button>
+          {isSignedIn ? (
+            <Button 
+              size="lg" 
+              className="font-semibold bg-blue-600 hover:bg-blue-700"
+              onClick={() => {
+                if (formData.generatedLogoUrl) {
+                  localStorage.setItem('pendingLogoData', JSON.stringify({
+                    ...formData,
+                    timestamp: Date.now()
+                  }));
+                  window.location.href = "/dashboard";
+                }
+              }}
+            >
+              <DownloadIcon className="mr-2 h-4 w-4" />
+              Download Logo
+            </Button>
+          ) : (
+            <SignInButton mode="modal">
+              <Button 
+                size="lg" 
+                className="font-semibold bg-blue-600 hover:bg-blue-700"
+                onClick={() => {
+                  if (formData.generatedLogoUrl) {
+                    localStorage.setItem('pendingLogoData', JSON.stringify({
+                      ...formData,
+                      timestamp: Date.now()
+                    }));
+                  }
+                }}
+              >
+                <DownloadIcon className="mr-2 h-4 w-4" />
+                Sign In to Download
+              </Button>
+            </SignInButton>
+          )}
         </div>
       </div>
     )
@@ -371,8 +381,10 @@ export default function LogoQuestionnaire() {
                 ))}
               </div>
             </div>
-            <div className="mb-8">
-              <QuestionContent question={questions[currentQuestion]} />
+            <div className="min-h-[300px] flex items-center justify-center">
+              <div className="w-full">
+                <QuestionContent question={questions[currentQuestion]} />
+              </div>
             </div>
           </motion.div>
         </AnimatePresence>
