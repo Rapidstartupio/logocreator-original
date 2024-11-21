@@ -18,7 +18,7 @@ import { SignInButton, useUser } from "@clerk/nextjs";
 import * as RadioGroup from "@radix-ui/react-radio-group";
 import { DownloadIcon, RefreshCwIcon } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { domain } from "@/app/lib/domain";
@@ -97,6 +97,32 @@ export default function Page() {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   const { isSignedIn, isLoaded, user } = useUser();
+
+  useEffect(() => {
+    // Check for pending logo data
+    const pendingData = localStorage.getItem('pendingLogoData');
+    if (pendingData) {
+      try {
+        const logoData = JSON.parse(pendingData);
+        // Set the form data with the pending logo
+        setCompanyName(logoData.companyName);
+        setSelectedLayout(logoData.layout);
+        setSelectedStyle(logoData.style);
+        setSelectedPrimaryColor(logoData.primaryColor);
+        setSelectedBackgroundColor(logoData.backgroundColor);
+        setAdditionalInfo(logoData.additionalInfo);
+        if (logoData.generatedLogoUrl) {
+          // Convert the data URL to base64
+          const base64Data = logoData.generatedLogoUrl.split(',')[1];
+          setGeneratedImages([base64Data]);
+        }
+        // Clear the pending data
+        localStorage.removeItem('pendingLogoData');
+      } catch (error) {
+        console.error('Error processing pending logo data:', error);
+      }
+    }
+  }, []); // Run once on component mount
 
   // Update the generateLogo function to handle single image refresh
   async function generateSingleLogo(frameIndex: number) {

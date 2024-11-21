@@ -149,7 +149,10 @@ export default function LogoQuestionnaire() {
         timestamp: Date.now()
       }))
       if (!isSignedIn) {
-        RedirectToSignIn({ redirectUrl: "/dashboard" })
+        RedirectToSignIn({ 
+          afterSignInUrl: "/dashboard",
+          afterSignUpUrl: "/dashboard"
+        })
       } else {
         window.location.href = "/dashboard"
       }
