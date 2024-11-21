@@ -21,7 +21,7 @@ export default clerkMiddleware(async (auth, req) => {
   }
 
   // For homepage, check auth status and redirect if logged in
-  if (req.nextUrl.pathname === '/' && !publicRoutes(req)) {
+  if (req.nextUrl.pathname === '/' || publicRoutes(req)) {
     const isAuthenticated = await auth.protect().then(() => true).catch(() => false);
     if (isAuthenticated) {
       return NextResponse.redirect(new URL('/dashboard', req.url));
