@@ -309,12 +309,17 @@ export default function LogoQuestionnaire() {
             <RefreshCw className="mr-2 h-4 w-4" />
             Regenerate
           </Button>
-          <SignInButton>
+          <SignInButton mode="modal">
             <Button 
               size="lg" 
               className="font-semibold bg-blue-600 hover:bg-blue-700"
               onClick={() => {
-                localStorage.setItem('pendingLogoData', JSON.stringify(formData))
+                if (formData.generatedLogoUrl) {
+                  localStorage.setItem('pendingLogoData', JSON.stringify({
+                    ...formData,
+                    timestamp: Date.now()
+                  }))
+                }
               }}
             >
               <DownloadIcon className="mr-2 h-4 w-4" />

@@ -12,7 +12,7 @@ export default function LandingPage() {
           <Link href="/" className="text-white text-xl font-bold">
             Logo AI
           </Link>
-          <SignInButton>
+          <SignInButton mode="modal">
             <Button variant="outline" className="bg-gray-800 border-gray-700 hover:bg-gray-700 text-white">
               Sign In
             </Button>
