@@ -1,5 +1,5 @@
 import LogoQuestionnaire from "@/components/logoQuestionnaire"
-import Footer from "@/components/Footer"
+//import Footer from "@/components/Footer"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { SignInButton, UserButton, SignedIn, SignedOut } from "@clerk/nextjs"
@@ -39,7 +39,7 @@ export default function LandingPage() {
         </div>
         <LogoQuestionnaire />
       </div>
-      <Footer />
+      {/* <Footer /> */}
     </main>
   )
 } 
