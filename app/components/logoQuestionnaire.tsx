@@ -319,6 +319,7 @@ export default function LogoQuestionnaire() {
                     ...formData,
                     timestamp: Date.now()
                   }))
+                  window.location.href = "/dashboard"
                 }
               }}
             >
