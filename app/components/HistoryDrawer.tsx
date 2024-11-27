@@ -2,8 +2,10 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { History } from "lucide-react";
 import { Button } from "./ui/button";
 import Image from "next/image";
-import { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Doc } from "@/convex/_generated/dataModel";
 
 export interface LogoHistory {
   id: string;
@@ -24,15 +26,21 @@ interface HistoryDrawerProps {
 }
 
 export default function HistoryDrawer({ onSelectHistory }: HistoryDrawerProps) {
-  const [history, setHistory] = useState<LogoHistory[]>([]);
+  const history = useQuery(api.logoHistory.list) || [];
 
-  useEffect(() => {
-    // Load history from localStorage
-    const savedHistory = localStorage.getItem('logoHistory');
-    if (savedHistory) {
-      setHistory(JSON.parse(savedHistory));
+  const transformToLogoHistory = (item: Doc<"logoHistory">): LogoHistory => ({
+    id: item._id,
+    timestamp: new Date(item.timestamp).toISOString(),
+    images: item.images,
+    settings: {
+      companyName: item.companyName,
+      layout: item.layout,
+      style: item.style,
+      primaryColor: item.primaryColor,
+      backgroundColor: item.backgroundColor,
+      additionalInfo: item.additionalInfo,
     }
-  }, []);
+  });
 
   return (
     <Sheet>
@@ -51,12 +59,12 @@ export default function HistoryDrawer({ onSelectHistory }: HistoryDrawerProps) {
           ) : (
             history.map((item) => (
               <div
-                key={item.id}
+                key={item._id}
                 className="group cursor-pointer rounded-lg border border-gray-700 p-4 hover:border-gray-500"
-                onClick={() => onSelectHistory(item)}
+                onClick={() => onSelectHistory(transformToLogoHistory(item))}
               >
                 <div className="mb-2 flex items-center justify-between">
-                  <h3 className="font-medium">{item.settings.companyName}</h3>
+                  <h3 className="font-medium">{item.companyName}</h3>
                   <span className="text-sm text-gray-400">
                     {formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}
                   </span>
@@ -76,10 +84,10 @@ export default function HistoryDrawer({ onSelectHistory }: HistoryDrawerProps) {
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <span className="rounded-full bg-gray-700 px-2 py-1 text-xs">
-                    {item.settings.style}
+                    {item.style}
                   </span>
                   <span className="rounded-full bg-gray-700 px-2 py-1 text-xs">
-                    {item.settings.layout}
+                    {item.layout}
                   </span>
                 </div>
               </div>
