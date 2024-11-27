@@ -9,6 +9,7 @@ import {
 } from "@clerk/nextjs";
 import { domain } from "@/app/lib/domain";
 import { APIKeyDialog } from "./APIKeyDialog";
+import { CreditsDialog } from "./CreditsDialog";
 
 export default function Header({ className }: { className: string }) {
   const { user } = useUser();
@@ -23,14 +24,8 @@ export default function Header({ className }: { className: string }) {
       return <p>Your API key</p>;
     }
 
-    // If user is using rate-limited credits
-    const remaining = metadata.remaining;
-    if (typeof remaining === 'number') {
-      return <p>Credits: {remaining}</p>;
-    }
-
-    // Default fallback to show max credits
-    return <p>Credits: 3</p>;
+    // If user is using rate-limited credits, show the CreditsDialog
+    return <CreditsDialog />;
   };
 
   return (
