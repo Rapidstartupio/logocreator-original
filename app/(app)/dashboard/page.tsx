@@ -200,6 +200,31 @@ export default function Page() {
     if (res.ok) {
       const images = await res.json();
       setGeneratedImages(images);
+      
+      // Save to history
+      const historyItem = {
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        images,
+        settings: {
+          companyName,
+          layout: selectedLayout,
+          style: selectedStyle,
+          primaryColor: selectedPrimaryColor,
+          backgroundColor: selectedBackgroundColor,
+          additionalInfo,
+        },
+      };
+      
+      // Get existing history
+      const existingHistory = JSON.parse(localStorage.getItem('logoHistory') || '[]');
+      
+      // Add new item to the beginning
+      const updatedHistory = [historyItem, ...existingHistory].slice(0, 50); // Keep last 50 items
+      
+      // Save updated history
+      localStorage.setItem('logoHistory', JSON.stringify(updatedHistory));
+      
       await user.reload();
     } else {
       // Add more detailed error logging

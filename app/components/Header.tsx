@@ -10,8 +10,10 @@ import {
 import { domain } from "@/app/lib/domain";
 import { APIKeyDialog } from "./APIKeyDialog";
 import { CreditsDialog } from "./CreditsDialog";
+import HistoryDrawer from "./HistoryDrawer";
+import type { LogoHistory } from "./HistoryDrawer";
 
-export default function Header({ className }: { className: string }) {
+export default function Header({ className }: { className?: string }) {
   const { user } = useUser();
 
   // Function to determine what to display for credits/API key status
@@ -26,6 +28,21 @@ export default function Header({ className }: { className: string }) {
 
     // If user is using rate-limited credits, show the CreditsDialog
     return <CreditsDialog />;
+  };
+
+  const handleHistorySelect = (historyItem: LogoHistory) => {
+    // Populate the form with historical data
+    localStorage.setItem('pendingLogoData', JSON.stringify({
+      companyName: historyItem.settings.companyName,
+      layout: historyItem.settings.layout,
+      style: historyItem.settings.style,
+      primaryColor: historyItem.settings.primaryColor,
+      backgroundColor: historyItem.settings.backgroundColor,
+      additionalInfo: historyItem.settings.additionalInfo,
+      generatedImages: historyItem.images,
+    }));
+    // Reload the page to apply the changes
+    window.location.reload();
   };
 
   return (
@@ -56,6 +73,7 @@ export default function Header({ className }: { className: string }) {
           <SignedIn>
             {getCreditsDisplay()}
             <div className="flex items-center">
+              <HistoryDrawer onSelectHistory={handleHistorySelect} />
               <APIKeyDialog />
               <UserButton 
                 afterSignOutUrl="/"
