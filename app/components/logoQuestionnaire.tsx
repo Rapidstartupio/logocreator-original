@@ -83,44 +83,6 @@ export default function LogoQuestionnaire() {
     { name: "minimal", icon: "/minimal.svg" },
   ]
 
-  const primaryColors = [
-    {
-      name: "Blue",
-      shades: [
-        "bg-blue-400",
-        "bg-blue-500",
-        "bg-blue-600",
-        "bg-blue-700"
-      ]
-    },
-    {
-      name: "Red",
-      shades: [
-        "bg-red-400",
-        "bg-red-500",
-        "bg-red-600",
-        "bg-red-700"
-      ]
-    },
-    {
-      name: "Green",
-      shades: [
-        "bg-green-400",
-        "bg-green-500",
-        "bg-green-600",
-        "bg-green-700"
-      ]
-    },
-    {
-      name: "Purple",
-      shades: [
-        "bg-purple-400",
-        "bg-purple-500",
-        "bg-purple-600",
-        "bg-purple-700"
-      ]
-    }
-  ];
 
   const handleNext = () => {
     if (currentQuestion < questions.length - 1) {
@@ -278,7 +240,24 @@ export default function LogoQuestionnaire() {
                 Choose Your Primary Color
               </label>
               <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                {primaryColors.map((color) => (
+                {[
+                  {
+                    name: "Blue",
+                    shades: ["bg-blue-400", "bg-blue-500", "bg-blue-600", "bg-blue-700"]
+                  },
+                  {
+                    name: "Red",
+                    shades: ["bg-red-400", "bg-red-500", "bg-red-600", "bg-red-700"]
+                  },
+                  {
+                    name: "Green",
+                    shades: ["bg-green-400", "bg-green-500", "bg-green-600", "bg-green-700"]
+                  },
+                  {
+                    name: "Yellow",
+                    shades: ["bg-yellow-400", "bg-yellow-500", "bg-yellow-600", "bg-yellow-700"]
+                  }
+                ].map((color) => (
                   <button
                     key={color.name}
                     onClick={() => setFormData({ ...formData, primaryColor: color.name })}
@@ -289,9 +268,9 @@ export default function LogoQuestionnaire() {
                     }`}
                   >
                     <div className="h-12 flex items-center justify-center">
-                      <div className="w-12 h-12 grid grid-cols-2 grid-rows-2 gap-1 rounded-md overflow-hidden">
+                      <div className="w-12 h-12 grid grid-cols-2 grid-rows-2">
                         {color.shades.map((shade, index) => (
-                          <div key={index} className={shade} />
+                          <div key={index} className={`${shade}`} />
                         ))}
                       </div>
                     </div>
