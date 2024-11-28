@@ -29,9 +29,9 @@ import { api } from "@/convex/_generated/api";
 import { useMutation } from "convex/react";
 
 const layouts = [
-  { name: "Solo", icon: "/solo.svg" },
-  { name: "Side", icon: "/side.svg" },
-  { name: "Stack", icon: "/stack.svg" },
+  { name: "Icon Only", icon: "/solo.svg" },
+  { name: "Horizontal", icon: "/side.svg" },
+  { name: "Stacked", icon: "/stack.svg" },
 ];
 
 const logoStyles = [
