@@ -85,40 +85,40 @@ export default function LogoQuestionnaire() {
   ]
 
   const primaryColors = [
-    { 
-      name: "Blue", 
+    {
+      name: "Blue",
       shades: [
-        "#0A2647", // darkest
-        "#144272",
-        "#205295",
-        "#2C74B3"  // lightest
+        "bg-blue-400",
+        "bg-blue-500",
+        "bg-blue-600",
+        "bg-blue-700"
       ]
     },
-    { 
-      name: "Red", 
+    {
+      name: "Red",
       shades: [
-        "#570A0A",
-        "#930B0B",
-        "#CE1212",
-        "#E64848"
+        "bg-red-400",
+        "bg-red-500",
+        "bg-red-600",
+        "bg-red-700"
       ]
     },
-    { 
-      name: "Green", 
+    {
+      name: "Green",
       shades: [
-        "#0B4619",
-        "#147A2D",
-        "#1E9B3B",
-        "#28B446"
+        "bg-green-400",
+        "bg-green-500",
+        "bg-green-600",
+        "bg-green-700"
       ]
     },
-    { 
-      name: "Yellow", 
+    {
+      name: "Purple",
       shades: [
-        "#B99B06",
-        "#D4B00B",
-        "#F0C916",
-        "#FFD93D"
+        "bg-purple-400",
+        "bg-purple-500",
+        "bg-purple-600",
+        "bg-purple-700"
       ]
     }
   ];
@@ -179,99 +179,22 @@ export default function LogoQuestionnaire() {
     switch (question.type) {
       case "input":
         return (
-          <div className="space-y-6">
-            <div className="space-y-4">
-              <label className="text-sm text-gray-400">Which of the following best describes your business:</label>
-              <div className="grid gap-3">
-                <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="businessType"
-                    className="text-blue-500"
-                    onChange={() => setFormData(prev => ({
-                      ...prev,
-                      companyName: "The Local Shop",
-                      additionalInfo: "Physical retail store selling everyday products"
-                    }))}
-                  />
-                  <span className="text-sm text-gray-300">Brick & Mortar: I have a physical location where I sell products and/or services</span>
-                </label>
-                
-                <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="businessType"
-                    className="text-blue-500"
-                    onChange={() => setFormData(prev => ({
-                      ...prev,
-                      companyName: "TechGear",
-                      additionalInfo: "Online store selling electronics and gadgets"
-                    }))}
-                  />
-                  <span className="text-sm text-gray-300">eCommerce: selling products online</span>
-                </label>
-                
-                <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="businessType"
-                    className="text-blue-500"
-                    onChange={() => setFormData(prev => ({
-                      ...prev,
-                      companyName: "MindfulLearning",
-                      additionalInfo: "Educational content and online courses"
-                    }))}
-                  />
-                  <span className="text-sm text-gray-300">Information Products: books, courses, etc</span>
-                </label>
-                
-                <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="businessType"
-                    className="text-blue-500"
-                    onChange={() => setFormData(prev => ({
-                      ...prev,
-                      companyName: "MarketPro",
-                      additionalInfo: "Affiliate marketing business promoting tech products"
-                    }))}
-                  />
-                  <span className="text-sm text-gray-300">Affiliate Marketing: selling other companies products & services</span>
-                </label>
-                
-                <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="businessType"
-                    className="text-blue-500"
-                    onChange={() => setFormData(prev => ({
-                      ...prev,
-                      companyName: "CodeCraft",
-                      additionalInfo: "Software development agency"
-                    }))}
-                  />
-                  <span className="text-sm text-gray-300">Other: software, real estate agent, blogging, agency, etc</span>
-                </label>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm text-gray-400">Enter your company name:</label>
-              <Input
-                placeholder="Enter your company name"
-                value={formData.companyName}
-                onChange={(e) => {
-                  e.preventDefault()
-                  const newValue = e.target.value
-                  setFormData(prev => ({
-                    ...prev,
-                    companyName: newValue
-                  }))
-                }}
-                className="text-lg p-6 bg-gray-800 border-gray-700 text-white placeholder-gray-400"
-                autoFocus
-              />
-            </div>
+          <div className="space-y-2">
+            <label className="text-sm text-gray-400">Enter your company name:</label>
+            <Input
+              placeholder="Enter your company name"
+              value={formData.companyName}
+              onChange={(e) => {
+                e.preventDefault()
+                const newValue = e.target.value
+                setFormData(prev => ({
+                  ...prev,
+                  companyName: newValue
+                }))
+              }}
+              className="text-lg p-6 bg-gray-800 border-gray-700 text-white placeholder-gray-400"
+              autoFocus
+            />
           </div>
         )
       case "number":
@@ -369,8 +292,7 @@ export default function LogoQuestionnaire() {
                       {color.shades.map((shade, index) => (
                         <div
                           key={index}
-                          style={{ backgroundColor: shade }}
-                          className="aspect-square"
+                          className={`aspect-square ${shade}`}
                         />
                       ))}
                     </div>
@@ -383,12 +305,87 @@ export default function LogoQuestionnaire() {
         )
       case "textarea":
         return (
-          <Textarea
-            placeholder="Enter any additional information or requirements..."
-            value={formData.additionalInfo}
-            onChange={(e) => setFormData({ ...formData, additionalInfo: e.target.value })}
-            className="min-h-[150px] bg-gray-800 border-gray-700 text-white placeholder-gray-400"
-          />
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <label className="text-sm text-gray-400">Which of the following best describes your business:</label>
+              <div className="grid gap-3">
+                <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="businessType"
+                    className="text-blue-500"
+                    onChange={() => setFormData(prev => ({
+                      ...prev,
+                      additionalInfo: "Physical retail store selling everyday products"
+                    }))}
+                  />
+                  <span className="text-sm text-gray-300">Brick & Mortar: I have a physical location where I sell products and/or services</span>
+                </label>
+                
+                <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="businessType"
+                    className="text-blue-500"
+                    onChange={() => setFormData(prev => ({
+                      ...prev,
+                      additionalInfo: "Online store selling electronics and gadgets"
+                    }))}
+                  />
+                  <span className="text-sm text-gray-300">eCommerce: selling products online</span>
+                </label>
+                
+                <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="businessType"
+                    className="text-blue-500"
+                    onChange={() => setFormData(prev => ({
+                      ...prev,
+                      additionalInfo: "Educational content and online courses"
+                    }))}
+                  />
+                  <span className="text-sm text-gray-300">Information Products: books, courses, etc</span>
+                </label>
+                
+                <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="businessType"
+                    className="text-blue-500"
+                    onChange={() => setFormData(prev => ({
+                      ...prev,
+                      additionalInfo: "Affiliate marketing business promoting tech products"
+                    }))}
+                  />
+                  <span className="text-sm text-gray-300">Affiliate Marketing: selling other companies products & services</span>
+                </label>
+                
+                <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="businessType"
+                    className="text-blue-500"
+                    onChange={() => setFormData(prev => ({
+                      ...prev,
+                      additionalInfo: "Software development agency"
+                    }))}
+                  />
+                  <span className="text-sm text-gray-300">Other: software, real estate agent, blogging, agency, etc</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm text-gray-400">Or enter custom information:</label>
+              <Textarea
+                placeholder="Enter any additional information or requirements..."
+                value={formData.additionalInfo}
+                onChange={(e) => setFormData({ ...formData, additionalInfo: e.target.value })}
+                className="min-h-[150px] bg-gray-800 border-gray-700 text-white placeholder-gray-400"
+              />
+            </div>
+          </div>
         )
       default:
         return null
