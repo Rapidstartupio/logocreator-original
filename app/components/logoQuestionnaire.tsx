@@ -8,7 +8,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { RefreshCw, Loader2, DownloadIcon } from 'lucide-react'
 import Image from "next/image"
 import { SignInButton, useUser } from "@clerk/nextjs"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
 type Question = {
   id: number
@@ -272,35 +271,64 @@ export default function LogoQuestionnaire() {
         )
       case "color":
         return (
-          <div className="mb-6">
-            <label className="mb-2 block text-xs font-bold uppercase text-[#6F6F6F]">
-              Choose Your Primary Color Scheme
-            </label>
-            <RadioGroup
-              value={formData.primaryColor}
-              onValueChange={(value) => setFormData({ ...formData, primaryColor: value })}
-              className="grid grid-cols-2 gap-3 md:grid-cols-4"
-            >
-              {primaryColors.map((color) => (
-                <RadioGroupItem
-                  value={color.name}
-                  key={color.name}
-                  className="group text-[#6F6F6F] focus-visible:outline-none data-[state=checked]:text-white"
-                >
-                  <div className="aspect-square w-full overflow-hidden rounded-md border border-transparent group-focus-visible:outline group-focus-visible:outline-offset-2 group-focus-visible:outline-gray-400 group-data-[state=checked]:border-white">
-                    <div className="grid h-full w-full grid-cols-2 grid-rows-2">
-                      {color.shades.map((shade, index) => (
-                        <div
-                          key={index}
-                          className={`aspect-square ${shade}`}
-                        />
-                      ))}
+          <div className="space-y-6">
+            {/* Primary Color */}
+            <div>
+              <label className="mb-2 block text-xs font-bold uppercase text-[#6F6F6F]">
+                Choose Your Primary Color
+              </label>
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                {primaryColors.map((color) => (
+                  <button
+                    key={color.name}
+                    onClick={() => setFormData({ ...formData, primaryColor: color.name })}
+                    className={`p-6 rounded-lg border-2 transition-all hover:scale-105 ${
+                      formData.primaryColor === color.name
+                        ? "border-blue-500 bg-blue-500/20"
+                        : "border-gray-700 hover:border-blue-500/50"
+                    }`}
+                  >
+                    <div className="h-12 flex items-center justify-center">
+                      <div className="w-12 h-12 grid grid-cols-2 grid-rows-2 gap-1 rounded-md overflow-hidden">
+                        {color.shades.map((shade, index) => (
+                          <div key={index} className={shade} />
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                  <span className="mt-1 block text-center text-xs">{color.name}</span>
-                </RadioGroupItem>
-              ))}
-            </RadioGroup>
+                    <div className="text-sm text-gray-400 mt-2 capitalize">{color.name}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Background Color */}
+            <div>
+              <label className="mb-2 block text-xs font-bold uppercase text-[#6F6F6F]">
+                Choose Your Background Color
+              </label>
+              <div className="grid grid-cols-3 gap-4">
+                {[
+                  { name: "White", class: "bg-white" },
+                  { name: "Black", class: "bg-black" },
+                  { name: "Transparent", class: "bg-transparent border border-dashed border-gray-600" }
+                ].map((color) => (
+                  <button
+                    key={color.name}
+                    onClick={() => setFormData({ ...formData, backgroundColor: color.name })}
+                    className={`p-6 rounded-lg border-2 transition-all hover:scale-105 ${
+                      formData.backgroundColor === color.name
+                        ? "border-blue-500 bg-blue-500/20"
+                        : "border-gray-700 hover:border-blue-500/50"
+                    }`}
+                  >
+                    <div className="h-12 flex items-center justify-center">
+                      <div className={`w-12 h-12 rounded-md ${color.class}`} />
+                    </div>
+                    <div className="text-sm text-gray-400 mt-2 capitalize">{color.name}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         )
       case "textarea":
