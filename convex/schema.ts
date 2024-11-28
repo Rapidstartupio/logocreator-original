@@ -11,6 +11,6 @@ export default defineSchema({
     backgroundColor: v.string(),
     additionalInfo: v.optional(v.string()),
     images: v.array(v.string()),
-    timestamp: v.number(),
-  }).index("by_user", ["userId"]),
+    timestamp: v.number()
+  }).index("by_user", ["userId"])
 }); 

@@ -13,7 +13,9 @@ export const save = mutation({
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthenticated");
+    if (!identity) {
+      throw new Error("Called save without authentication present");
+    }
     
     return await ctx.db.insert("logoHistory", {
       userId: identity.subject,
@@ -26,7 +28,9 @@ export const save = mutation({
 export const list = query({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
+    if (!identity) {
+      return [];
+    }
     
     return await ctx.db
       .query("logoHistory")
