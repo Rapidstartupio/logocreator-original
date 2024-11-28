@@ -147,9 +147,9 @@ export async function POST(req: Request) {
   };
 
   const layoutLookup: Record<string, string> = {
-    Icon: "Create a single, centered logo design",
-    Horizontal: "Create a horizontal logo layout. The logo must have two distinct elements side by side: (1) an icon or symbol on the left side, and (2) the company name text on the right side. Both elements should be of equal height and aligned horizontally in the center. Maintain clear spacing between the icon and text.",
-    Stacked: "Create a stacked logo with the icon above the text",
+    icon: "Create a single, centered logo design",
+    horizontal: "Create a horizontal logo layout. The logo must have two distinct elements side by side: (1) an icon or symbol on the left side, and (2) the company name text on the right side. Both elements should be of equal height and aligned horizontally in the center. Maintain clear spacing between the icon and text.",
+    stacked: "Create a stacked logo with the icon above the text",
   };
 
   const prompt = dedent`A single logo, high-quality, award-winning professional design, made for both digital and print media, only contains a few vector shapes, ${styleLookup[data.selectedStyle]}
