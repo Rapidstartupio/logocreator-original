@@ -70,9 +70,9 @@ export default function LogoQuestionnaire() {
   }
 
   const layouts = [
-    { name: "solo", icon: "/solo.svg" },
-    { name: "side", icon: "/side.svg" },
-    { name: "stack", icon: "/stack.svg" },
+    { name: "Icon", icon: "/solo.svg" },
+    { name: "Horizontal", icon: "/side.svg" },
+    { name: "Stacked", icon: "/stack.svg" },
   ]
 
   const logoStyles = [
