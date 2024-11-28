@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { RefreshCw, Loader2, DownloadIcon } from 'lucide-react'
 import Image from "next/image"
 import { SignInButton, useUser } from "@clerk/nextjs"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
 type Question = {
   id: number
@@ -18,7 +19,7 @@ type Question = {
 interface FormData {
   companyName: string
   numberImages: "1" | "3" | "6"
-  layout: "solo" | "side" | "stack"
+  layout: "icon" | "horizontal" | "stacked"
   style: "tech" | "flashy" | "modern" | "playful" | "abstract" | "minimal"
   primaryColor: string
   backgroundColor: string
@@ -34,7 +35,7 @@ export default function LogoQuestionnaire() {
   const [formData, setFormData] = useState<FormData>({
     companyName: "",
     numberImages: "1",
-    layout: "solo",
+    layout: "icon",
     style: "tech",
     primaryColor: "blue",
     backgroundColor: "white",
@@ -82,6 +83,45 @@ export default function LogoQuestionnaire() {
     { name: "abstract", icon: "/abstract.svg" },
     { name: "minimal", icon: "/minimal.svg" },
   ]
+
+  const primaryColors = [
+    { 
+      name: "Blue", 
+      shades: [
+        "#0A2647", // darkest
+        "#144272",
+        "#205295",
+        "#2C74B3"  // lightest
+      ]
+    },
+    { 
+      name: "Red", 
+      shades: [
+        "#570A0A",
+        "#930B0B",
+        "#CE1212",
+        "#E64848"
+      ]
+    },
+    { 
+      name: "Green", 
+      shades: [
+        "#0B4619",
+        "#147A2D",
+        "#1E9B3B",
+        "#28B446"
+      ]
+    },
+    { 
+      name: "Yellow", 
+      shades: [
+        "#B99B06",
+        "#D4B00B",
+        "#F0C916",
+        "#FFD93D"
+      ]
+    }
+  ];
 
   const handleNext = () => {
     if (currentQuestion < questions.length - 1) {
@@ -139,20 +179,100 @@ export default function LogoQuestionnaire() {
     switch (question.type) {
       case "input":
         return (
-          <Input
-            placeholder="Enter your company name"
-            value={formData.companyName}
-            onChange={(e) => {
-              e.preventDefault()
-              const newValue = e.target.value
-              setFormData(prev => ({
-                ...prev,
-                companyName: newValue
-              }))
-            }}
-            className="text-lg p-6 bg-gray-800 border-gray-700 text-white placeholder-gray-400"
-            autoFocus
-          />
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <label className="text-sm text-gray-400">Which of the following best describes your business:</label>
+              <div className="grid gap-3">
+                <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="businessType"
+                    className="text-blue-500"
+                    onChange={() => setFormData(prev => ({
+                      ...prev,
+                      companyName: "The Local Shop",
+                      additionalInfo: "Physical retail store selling everyday products"
+                    }))}
+                  />
+                  <span className="text-sm text-gray-300">Brick & Mortar: I have a physical location where I sell products and/or services</span>
+                </label>
+                
+                <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="businessType"
+                    className="text-blue-500"
+                    onChange={() => setFormData(prev => ({
+                      ...prev,
+                      companyName: "TechGear",
+                      additionalInfo: "Online store selling electronics and gadgets"
+                    }))}
+                  />
+                  <span className="text-sm text-gray-300">eCommerce: selling products online</span>
+                </label>
+                
+                <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="businessType"
+                    className="text-blue-500"
+                    onChange={() => setFormData(prev => ({
+                      ...prev,
+                      companyName: "MindfulLearning",
+                      additionalInfo: "Educational content and online courses"
+                    }))}
+                  />
+                  <span className="text-sm text-gray-300">Information Products: books, courses, etc</span>
+                </label>
+                
+                <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="businessType"
+                    className="text-blue-500"
+                    onChange={() => setFormData(prev => ({
+                      ...prev,
+                      companyName: "MarketPro",
+                      additionalInfo: "Affiliate marketing business promoting tech products"
+                    }))}
+                  />
+                  <span className="text-sm text-gray-300">Affiliate Marketing: selling other companies products & services</span>
+                </label>
+                
+                <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="businessType"
+                    className="text-blue-500"
+                    onChange={() => setFormData(prev => ({
+                      ...prev,
+                      companyName: "CodeCraft",
+                      additionalInfo: "Software development agency"
+                    }))}
+                  />
+                  <span className="text-sm text-gray-300">Other: software, real estate agent, blogging, agency, etc</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm text-gray-400">Enter your company name:</label>
+              <Input
+                placeholder="Enter your company name"
+                value={formData.companyName}
+                onChange={(e) => {
+                  e.preventDefault()
+                  const newValue = e.target.value
+                  setFormData(prev => ({
+                    ...prev,
+                    companyName: newValue
+                  }))
+                }}
+                className="text-lg p-6 bg-gray-800 border-gray-700 text-white placeholder-gray-400"
+                autoFocus
+              />
+            </div>
+          </div>
         )
       case "number":
         return (
@@ -229,43 +349,36 @@ export default function LogoQuestionnaire() {
         )
       case "color":
         return (
-          <div className="grid gap-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block text-gray-300">Primary Color</label>
-              <div className="grid grid-cols-4 gap-2">
-                {["blue", "red", "green", "purple"].map((color) => (
-                  <button
-                    key={color}
-                    onClick={() => setFormData({ ...formData, primaryColor: color })}
-                    className={`p-4 rounded-lg border-2 transition-all hover:scale-105 capitalize ${
-                      formData.primaryColor === color
-                        ? "border-blue-500 bg-blue-500/20"
-                        : "border-gray-700 hover:border-blue-500/50"
-                    }`}
-                  >
-                    {color}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block text-gray-300">Background Color</label>
-              <div className="grid grid-cols-4 gap-2">
-                {["white", "black", "transparent"].map((color) => (
-                  <button
-                    key={color}
-                    onClick={() => setFormData({ ...formData, backgroundColor: color })}
-                    className={`p-4 rounded-lg border-2 transition-all hover:scale-105 capitalize ${
-                      formData.backgroundColor === color
-                        ? "border-blue-500 bg-blue-500/20"
-                        : "border-gray-700 hover:border-blue-500/50"
-                    }`}
-                  >
-                    {color}
-                  </button>
-                ))}
-              </div>
-            </div>
+          <div className="mb-6">
+            <label className="mb-2 block text-xs font-bold uppercase text-[#6F6F6F]">
+              Choose Your Primary Color Scheme
+            </label>
+            <RadioGroup
+              value={formData.primaryColor}
+              onValueChange={(value) => setFormData({ ...formData, primaryColor: value })}
+              className="grid grid-cols-2 gap-3 md:grid-cols-4"
+            >
+              {primaryColors.map((color) => (
+                <RadioGroupItem
+                  value={color.name}
+                  key={color.name}
+                  className="group text-[#6F6F6F] focus-visible:outline-none data-[state=checked]:text-white"
+                >
+                  <div className="aspect-square w-full overflow-hidden rounded-md border border-transparent group-focus-visible:outline group-focus-visible:outline-offset-2 group-focus-visible:outline-gray-400 group-data-[state=checked]:border-white">
+                    <div className="grid h-full w-full grid-cols-2 grid-rows-2">
+                      {color.shades.map((shade, index) => (
+                        <div
+                          key={index}
+                          style={{ backgroundColor: shade }}
+                          className="aspect-square"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <span className="mt-1 block text-center text-xs">{color.name}</span>
+                </RadioGroupItem>
+              ))}
+            </RadioGroup>
           </div>
         )
       case "textarea":
@@ -342,7 +455,7 @@ export default function LogoQuestionnaire() {
                 }}
               >
                 <DownloadIcon className="mr-2 h-4 w-4" />
-                Sign In to Download
+                Claim Your Download
               </Button>
             </SignInButton>
           )}
