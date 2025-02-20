@@ -16,6 +16,18 @@ const publicRoutes = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
+  console.log('Middleware processing request:', {
+    pathname: req.nextUrl.pathname,
+    isProtected: protectedRoutes(req),
+    isPublic: publicRoutes(req)
+  });
+
+  // Skip middleware for API routes
+  if (req.nextUrl.pathname.startsWith('/api/')) {
+    console.log('Skipping middleware for API route');
+    return NextResponse.next();
+  }
+
   // Protect dashboard routes
   if (protectedRoutes(req)) {
     await auth.protect();
