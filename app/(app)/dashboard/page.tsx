@@ -133,53 +133,59 @@ export default function Page() {
 
     setIsLoading(true);
 
-    // Get the base URL from the window location
-    const baseUrl = window.location.origin;
-    console.log('Making request to:', `${baseUrl}/api/generate-logo`);
-
-    const res = await fetch(`${baseUrl}/api/generate-logo`, {
-      method: "POST",
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        userAPIKey: localStorage.getItem("userAPIKey") || undefined,
-        companyName,
-        selectedLayout,
-        selectedStyle,
-        selectedPrimaryColor,
-        selectedBackgroundColor,
-        additionalInfo,
-        numberOfImages: 1,
-      }),
-    });
-
-    // Add response logging
-    console.log('Response:', {
-      status: res.status,
-      statusText: res.statusText,
-      headers: Object.fromEntries(res.headers.entries())
-    });
-
-    if (res.ok) {
-      const [newImage] = await res.json();
-      setGeneratedImages(prev => {
-        const updated = [...prev];
-        updated[frameIndex] = newImage;
-        return updated;
+    try {
+      console.log('Making request to: https://logox.ai/api/generate-logo');
+      const res = await fetch('https://logox.ai/api/generate-logo', {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          'Origin': 'https://logox.ai'
+        },
+        body: JSON.stringify({
+          userAPIKey: localStorage.getItem("userAPIKey") || undefined,
+          companyName,
+          selectedLayout,
+          selectedStyle,
+          selectedPrimaryColor,
+          selectedBackgroundColor,
+          additionalInfo,
+          numberOfImages: 1,
+        }),
       });
-      await user.reload();
-    } else if (res.headers.get("Content-Type") === "text/plain") {
+
+      console.log('Response:', {
+        status: res.status,
+        statusText: res.statusText,
+        headers: Object.fromEntries(res.headers.entries())
+      });
+
+      if (res.ok) {
+        const [newImage] = await res.json();
+        setGeneratedImages(prev => {
+          const updated = [...prev];
+          updated[frameIndex] = newImage;
+          return updated;
+        });
+        await user.reload();
+      } else if (res.headers.get("Content-Type") === "text/plain") {
+        toast({
+          variant: "destructive",
+          title: res.statusText,
+          description: await res.text(),
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Whoops!",
+          description: `There was a problem processing your request: ${res.statusText}`,
+        });
+      }
+    } catch (error) {
+      console.error('Fetch error:', error);
       toast({
         variant: "destructive",
-        title: res.statusText,
-        description: await res.text(),
-      });
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Whoops!",
-        description: `There was a problem processing your request: ${res.statusText}`,
+        title: "Error",
+        description: "Failed to connect to the server",
       });
     }
 
@@ -194,63 +200,68 @@ export default function Page() {
     setGeneratedImages([]);
     setSelectedImageIndex(0);
 
-    // Get the base URL from the window location
-    const baseUrl = window.location.origin;
-    console.log('Making request to:', `${baseUrl}/api/generate-logo`);
-
-    const res = await fetch(`${baseUrl}/api/generate-logo`, {
-      method: "POST",
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        userAPIKey: localStorage.getItem("userAPIKey") || undefined,
-        companyName,
-        selectedLayout,
-        selectedStyle,
-        selectedPrimaryColor,
-        selectedBackgroundColor,
-        additionalInfo,
-        numberOfImages: parseInt(numberOfImages),
-      }),
-    });
-
-    // Add response logging
-    console.log('Response:', {
-      status: res.status,
-      statusText: res.statusText,
-      headers: Object.fromEntries(res.headers.entries())
-    });
-
-    if (res.ok) {
-      const images = await res.json();
-      setGeneratedImages(images);
-      
-      // Save to Convex
-      await mutation({
-        companyName,
-        layout: selectedLayout,
-        style: selectedStyle,
-        primaryColor: selectedPrimaryColor,
-        backgroundColor: selectedBackgroundColor,
-        additionalInfo,
-        images,
+    try {
+      console.log('Making request to: https://logox.ai/api/generate-logo');
+      const res = await fetch('https://logox.ai/api/generate-logo', {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          'Origin': 'https://logox.ai'
+        },
+        body: JSON.stringify({
+          userAPIKey: localStorage.getItem("userAPIKey") || undefined,
+          companyName,
+          selectedLayout,
+          selectedStyle,
+          selectedPrimaryColor,
+          selectedBackgroundColor,
+          additionalInfo,
+          numberOfImages: parseInt(numberOfImages),
+        }),
       });
-      
-      await user.reload();
-    } else {
-      // Add more detailed error logging
-      const errorText = await res.text();
-      console.error('API Error:', {
+
+      console.log('Response:', {
         status: res.status,
         statusText: res.statusText,
-        body: errorText,
+        headers: Object.fromEntries(res.headers.entries())
       });
 
+      if (res.ok) {
+        const images = await res.json();
+        setGeneratedImages(images);
+        
+        // Save to Convex
+        await mutation({
+          companyName,
+          layout: selectedLayout,
+          style: selectedStyle,
+          primaryColor: selectedPrimaryColor,
+          backgroundColor: selectedBackgroundColor,
+          additionalInfo,
+          images,
+        });
+        
+        await user.reload();
+      } else {
+        const errorText = await res.text();
+        console.error('API Error:', {
+          status: res.status,
+          statusText: res.statusText,
+          body: errorText,
+        });
+
+        toast({
+          variant: "destructive",
+          title: "Error generating logo",
+          description: `Error: ${res.status} - ${errorText}`,
+        });
+      }
+    } catch (error) {
+      console.error('Fetch error:', error);
       toast({
         variant: "destructive",
-        title: "Error generating logo",
-        description: `Error: ${res.status} - ${errorText}`,
+        title: "Error",
+        description: "Failed to connect to the server",
       });
     }
 
@@ -264,14 +275,8 @@ export default function Page() {
       <div className="flex w-full flex-col md:flex-row">
         <div className="relative flex h-[calc(100vh-64px)] w-full flex-col bg-[#2C2C2C] text-[#F3F3F3] md:h-screen md:max-w-sm md:overflow-y-auto">
           <form
-            onSubmit={async (e: React.FormEvent) => {
-              e.preventDefault();
-              e.stopPropagation();
-              console.log('Form submitted, calling generateLogo');
-              setGeneratedImages([]);
-              await generateLogo();
-            }}
             className="flex h-full w-full flex-col"
+            onSubmit={(e: React.FormEvent) => e.preventDefault()}
           >
             <fieldset className="flex grow flex-col" disabled={!isSignedIn}>
               <div className="flex-grow overflow-y-auto">
@@ -442,8 +447,13 @@ export default function Page() {
                 <Button
                   size="lg"
                   className="w-full text-base font-bold"
-                  type="submit"
+                  type="button"
                   disabled={isLoading}
+                  onClick={async () => {
+                    console.log('Button clicked, calling generateLogo');
+                    setGeneratedImages([]);
+                    await generateLogo();
+                  }}
                 >
                   {isLoading ? (
                     <div className="loader mr-2" />
