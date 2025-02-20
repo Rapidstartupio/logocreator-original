@@ -50,12 +50,12 @@ export default function BootcampPopup({ isFirstGeneration }: BootcampPopupProps)
           Join Our Free Live Bootcamp Where We&apos;ll Help You Copy & Paste Your Way to a Complete Business Setup in 48 Minutes
         </p>
 
-        <div className="relative w-full h-[200px] my-4">
+        <div className="relative w-full h-[100px] my-4">
           <Image
             src="/proof.jpeg"
             alt="Bootcamp proof"
             fill
-            className="object-cover rounded-lg"
+            className="w-full rounded-lg"
           />
         </div>
 
