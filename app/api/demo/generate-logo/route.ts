@@ -8,8 +8,8 @@ const generateSingleImage = async (client: Together, prompt: string) => {
     const response = await client.images.create({
       prompt,
       model: "black-forest-labs/FLUX.1.1-pro",
-      width: 1000,
-      height: 1000,
+      width: 768,
+      height: 768,
       // steps: 4,
       // @ts-expect-error - this is not typed in the API
       response_format: "base64",
