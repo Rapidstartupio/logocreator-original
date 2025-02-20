@@ -27,6 +27,7 @@ import { NumberSelector } from "@/components/NumberSelector";
 import { cn } from "@/lib/utils";
 import { api } from "@/convex/_generated/api";
 import { useMutation } from "convex/react";
+import BootcampPopup from "@/app/components/BootcampPopup";
 
 const layouts = [
   { name: "Icon Only", icon: "/solo.svg" },
@@ -97,6 +98,7 @@ export default function Page() {
   const [numberOfImages, setNumberOfImages] = useState("1");
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [isFirstGeneration, setIsFirstGeneration] = useState(true);
 
   const { isSignedIn, isLoaded, user } = useUser();
   const mutation = useMutation(api.logoHistory.save);
@@ -125,7 +127,13 @@ export default function Page() {
         console.error('Error processing pending logo data:', error);
       }
     }
-  }, []); // Run once on component mount
+
+    // Check if user has generated logos before
+    const hasGeneratedBefore = localStorage.getItem('hasGeneratedLogo');
+    if (hasGeneratedBefore) {
+      setIsFirstGeneration(false);
+    }
+  }, []);
 
   // Update the generateLogo function to handle single image refresh
   async function generateSingleLogo(frameIndex: number) {
@@ -199,39 +207,29 @@ export default function Page() {
     setGeneratedImages([]);
     setSelectedImageIndex(0);
 
-    const requestData = {
-      userAPIKey: localStorage.getItem("userAPIKey") || undefined,
-      companyName,
-      selectedLayout,
-      selectedStyle,
-      selectedPrimaryColor,
-      selectedBackgroundColor,
-      additionalInfo,
-      numberOfImages: parseInt(numberOfImages),
-    };
-
     try {
-      const url = new URL('/api/generate-logo', window.location.origin);
-      console.log('Making request to:', url.toString());
-      console.log('Request data:', requestData);
-
-      const res = await fetch(url, {
+      console.log('Making request to: /api/generate-logo');
+      const res = await fetch('/api/generate-logo', {
         method: "POST",
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestData),
-        credentials: 'same-origin'
+        body: JSON.stringify({
+          userAPIKey: localStorage.getItem("userAPIKey") || undefined,
+          companyName,
+          selectedLayout,
+          selectedStyle,
+          selectedPrimaryColor,
+          selectedBackgroundColor,
+          additionalInfo,
+          numberOfImages: parseInt(numberOfImages),
+        }),
       });
 
-      console.log('Full response:', {
-        url: res.url,
+      console.log('Response:', {
         status: res.status,
         statusText: res.statusText,
-        type: res.type,
-        headers: Object.fromEntries(res.headers.entries()),
-        redirected: res.redirected,
-        ok: res.ok
+        headers: Object.fromEntries(res.headers.entries())
       });
 
       if (res.ok) {
@@ -248,20 +246,22 @@ export default function Page() {
           additionalInfo,
           images,
         });
+
+        // Mark that user has generated a logo
+        localStorage.setItem('hasGeneratedLogo', 'true');
         
         await user.reload();
-      } else {
-        const errorText = await res.text();
-        console.error('API Error:', {
-          status: res.status,
-          statusText: res.statusText,
-          body: errorText,
-        });
-
+      } else if (res.headers.get("Content-Type") === "text/plain") {
         toast({
           variant: "destructive",
-          title: "Error generating logo",
-          description: `Error: ${res.status} - ${errorText}`,
+          title: res.statusText,
+          description: await res.text(),
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Whoops!",
+          description: `There was a problem processing your request: ${res.statusText}`,
         });
       }
     } catch (error) {
@@ -602,6 +602,7 @@ export default function Page() {
           <Footer />
         </div>
       </div>
+      <BootcampPopup isFirstGeneration={isFirstGeneration} />
     </div>
   );
 }

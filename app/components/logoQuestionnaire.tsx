@@ -386,9 +386,15 @@ export default function LogoQuestionnaire() {
             <div className="space-y-2">
               <label className="text-sm text-gray-400">Or enter custom information:</label>
               <Textarea
+                key="additional-info-textarea"
                 placeholder="Enter any additional information or requirements..."
                 value={formData.additionalInfo}
-                onChange={(e) => setFormData({ ...formData, additionalInfo: e.target.value })}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  setFormData({ ...formData, additionalInfo: e.target.value });
+                }}
+                onFocus={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
                 className="min-h-[150px] bg-gray-800 border-gray-700 text-white placeholder-gray-400"
               />
             </div>
