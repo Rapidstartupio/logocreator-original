@@ -10,6 +10,7 @@ const protectedRoutes = createRouteMatcher([
 const publicRoutes = createRouteMatcher([
   "/",
   "/api/demo/generate-logo",
+  "/api/generate-logo",
   "/sign-in(.*)",
   "/sign-up(.*)"
 ]);
