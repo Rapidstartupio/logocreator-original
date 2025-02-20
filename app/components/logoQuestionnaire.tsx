@@ -312,7 +312,11 @@ export default function LogoQuestionnaire() {
         )
       case "textarea":
         return (
-          <div className="space-y-6">
+          <motion.div
+            initial={false}
+            animate={{ opacity: 1 }}
+            className="space-y-6"
+          >
             <div className="space-y-4">
               <label className="text-sm text-gray-400">Which of the following best describes your business:</label>
               <div className="grid gap-3">
@@ -385,20 +389,24 @@ export default function LogoQuestionnaire() {
 
             <div className="space-y-2">
               <label className="text-sm text-gray-400">Or enter custom information:</label>
-              <Textarea
-                key="additional-info-textarea"
-                placeholder="Enter any additional information or requirements..."
-                value={formData.additionalInfo}
-                onChange={(e) => {
-                  e.stopPropagation();
-                  setFormData({ ...formData, additionalInfo: e.target.value });
-                }}
-                onFocus={(e) => e.stopPropagation()}
-                onClick={(e) => e.stopPropagation()}
-                className="min-h-[150px] bg-gray-800 border-gray-700 text-white placeholder-gray-400"
-              />
+              <div style={{ isolation: 'isolate' }}>
+                <Textarea
+                  key="additional-info-textarea"
+                  placeholder="Enter any additional information or requirements..."
+                  value={formData.additionalInfo}
+                  onChange={(e) => {
+                    e.preventDefault();
+                    const value = e.target.value;
+                    requestAnimationFrame(() => {
+                      setFormData(prev => ({ ...prev, additionalInfo: value }));
+                    });
+                  }}
+                  className="min-h-[150px] bg-gray-800 border-gray-700 text-white placeholder-gray-400"
+                  style={{ transform: 'none' }}
+                />
+              </div>
             </div>
-          </div>
+          </motion.div>
         )
       default:
         return null
