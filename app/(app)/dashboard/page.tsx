@@ -199,29 +199,39 @@ export default function Page() {
     setGeneratedImages([]);
     setSelectedImageIndex(0);
 
+    const requestData = {
+      userAPIKey: localStorage.getItem("userAPIKey") || undefined,
+      companyName,
+      selectedLayout,
+      selectedStyle,
+      selectedPrimaryColor,
+      selectedBackgroundColor,
+      additionalInfo,
+      numberOfImages: parseInt(numberOfImages),
+    };
+
     try {
-      console.log('Making request to: /api/generate-logo');
-      const res = await fetch('/api/generate-logo', {
+      const url = new URL('/api/generate-logo', window.location.origin);
+      console.log('Making request to:', url.toString());
+      console.log('Request data:', requestData);
+
+      const res = await fetch(url, {
         method: "POST",
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          userAPIKey: localStorage.getItem("userAPIKey") || undefined,
-          companyName,
-          selectedLayout,
-          selectedStyle,
-          selectedPrimaryColor,
-          selectedBackgroundColor,
-          additionalInfo,
-          numberOfImages: parseInt(numberOfImages),
-        }),
+        body: JSON.stringify(requestData),
+        credentials: 'same-origin'
       });
 
-      console.log('Response:', {
+      console.log('Full response:', {
+        url: res.url,
         status: res.status,
         statusText: res.statusText,
-        headers: Object.fromEntries(res.headers.entries())
+        type: res.type,
+        headers: Object.fromEntries(res.headers.entries()),
+        redirected: res.redirected,
+        ok: res.ok
       });
 
       if (res.ok) {
