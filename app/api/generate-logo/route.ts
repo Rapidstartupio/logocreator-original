@@ -15,6 +15,8 @@ export async function POST(req: Request) {
     keyFirstChars: envKey ? `${envKey.substring(0, 4)}...` : 'none',
     keyLength: envKey?.length,
     allEnvKeys: Object.keys(process.env),
+    NODE_ENV: process.env.NODE_ENV,
+    VERCEL_ENV: process.env.VERCEL_ENV
   });
 
   // Add request logging
@@ -39,7 +41,7 @@ export async function POST(req: Request) {
   const user = await currentUser();
 
   if (!user) {
-    return new Response("", { status: 404 });
+    return new Response("Unauthorized", { status: 401 });
   }
 
   const json = await req.json();
@@ -90,22 +92,24 @@ export async function POST(req: Request) {
     };
   }
 
-  // Log the final API key being used (first few chars only)
-  const finalApiKey = data.userAPIKey || process.env.TOGETHER_API_KEY;
-  console.log('Final API key check:', {
-    source: data.userAPIKey ? 'user' : 'environment',
-    keyExists: Boolean(finalApiKey),
-    keyFirstChars: finalApiKey ? `${finalApiKey.substring(0, 4)}...` : 'none',
-    keyLength: finalApiKey?.length
+  if (!options.apiKey) {
+    console.error('No Together API key found in environment variables');
+    return new Response("Server configuration error: Together API key not found", { 
+      status: 500,
+      headers: { 'Content-Type': 'text/plain' }
+    });
+  }
+
+  console.log('Together client options:', {
+    hasApiKey: Boolean(options.apiKey),
+    keyFirstChars: options.apiKey ? `${options.apiKey.substring(0, 4)}...` : 'none',
+    keyLength: options.apiKey?.length,
   });
 
   // Create the client with logging
-  const client = new Together({
-    ...options,
-    ...(data.userAPIKey ? { apiKey: data.userAPIKey } : {})
-  });
+  const client = new Together(options);
 
-  console.log('Client created with key from:', data.userAPIKey ? 'user' : 'environment');
+  console.log('Together client created');
 
   const clerkClientInstance = await clerkClient();
   if (data.userAPIKey) {
