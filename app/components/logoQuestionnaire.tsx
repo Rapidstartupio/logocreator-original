@@ -512,11 +512,98 @@ export default function LogoQuestionnaire() {
             </div>
             <div className="min-h-[300px] flex items-center justify-center">
               <div className="w-full">
-                <QuestionContent question={questions[currentQuestion]} />
+                {currentQuestion === questions.length - 1 ? (
+                  // Business type radio buttons
+                  <div className="space-y-4">
+                    <label className="text-sm text-gray-400">Which of the following best describes your business:</label>
+                    <div className="grid gap-3">
+                      <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="businessType"
+                          className="text-blue-500"
+                          onChange={() => setFormData(prev => ({
+                            ...prev,
+                            additionalInfo: "Physical retail store selling everyday products"
+                          }))}
+                        />
+                        <span className="text-sm text-gray-300">Brick & Mortar: I have a physical location where I sell products and/or services</span>
+                      </label>
+                      
+                      <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="businessType"
+                          className="text-blue-500"
+                          onChange={() => setFormData(prev => ({
+                            ...prev,
+                            additionalInfo: "Online store selling electronics and gadgets"
+                          }))}
+                        />
+                        <span className="text-sm text-gray-300">eCommerce: selling products online</span>
+                      </label>
+                      
+                      <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="businessType"
+                          className="text-blue-500"
+                          onChange={() => setFormData(prev => ({
+                            ...prev,
+                            additionalInfo: "Educational content and online courses"
+                          }))}
+                        />
+                        <span className="text-sm text-gray-300">Information Products: books, courses, etc</span>
+                      </label>
+                      
+                      <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="businessType"
+                          className="text-blue-500"
+                          onChange={() => setFormData(prev => ({
+                            ...prev,
+                            additionalInfo: "Affiliate marketing business promoting tech products"
+                          }))}
+                        />
+                        <span className="text-sm text-gray-300">Affiliate Marketing: selling other companies products & services</span>
+                      </label>
+                      
+                      <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="businessType"
+                          className="text-blue-500"
+                          onChange={() => setFormData(prev => ({
+                            ...prev,
+                            additionalInfo: "Software development agency"
+                          }))}
+                        />
+                        <span className="text-sm text-gray-300">Other: software, real estate agent, blogging, agency, etc</span>
+                      </label>
+                    </div>
+                  </div>
+                ) : (
+                  <QuestionContent question={questions[currentQuestion]} />
+                )}
               </div>
             </div>
           </motion.div>
         </AnimatePresence>
+
+        {/* Render textarea completely outside of animation context */}
+        {currentQuestion === questions.length - 1 && (
+          <div className="mt-6 space-y-2">
+            <label className="text-sm text-gray-400">Or enter custom information:</label>
+            <textarea
+              placeholder="Enter any additional information or requirements..."
+              value={formData.additionalInfo}
+              onChange={(e) => setFormData(prev => ({ ...prev, additionalInfo: e.target.value }))}
+              className="w-full min-h-[150px] rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+        )}
+
         <div className="flex gap-4 justify-between mt-8">
           <Button
             variant="outline"
