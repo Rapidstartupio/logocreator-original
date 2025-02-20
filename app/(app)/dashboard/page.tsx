@@ -133,7 +133,11 @@ export default function Page() {
 
     setIsLoading(true);
 
-    const res = await fetch("/api/generate-logo", {
+    // Get the base URL from the window location
+    const baseUrl = window.location.origin;
+    console.log('Making request to:', `${baseUrl}/api/generate-logo`);
+
+    const res = await fetch(`${baseUrl}/api/generate-logo`, {
       method: "POST",
       headers: {
         'Content-Type': 'application/json',
@@ -148,6 +152,13 @@ export default function Page() {
         additionalInfo,
         numberOfImages: 1,
       }),
+    });
+
+    // Add response logging
+    console.log('Response:', {
+      status: res.status,
+      statusText: res.statusText,
+      headers: Object.fromEntries(res.headers.entries())
     });
 
     if (res.ok) {
@@ -183,7 +194,11 @@ export default function Page() {
     setGeneratedImages([]);
     setSelectedImageIndex(0);
 
-    const res = await fetch("/api/generate-logo", {
+    // Get the base URL from the window location
+    const baseUrl = window.location.origin;
+    console.log('Making request to:', `${baseUrl}/api/generate-logo`);
+
+    const res = await fetch(`${baseUrl}/api/generate-logo`, {
       method: "POST",
       headers: {
         'Content-Type': 'application/json',
@@ -198,6 +213,13 @@ export default function Page() {
         additionalInfo,
         numberOfImages: parseInt(numberOfImages),
       }),
+    });
+
+    // Add response logging
+    console.log('Response:', {
+      status: res.status,
+      statusText: res.statusText,
+      headers: Object.fromEntries(res.headers.entries())
     });
 
     if (res.ok) {

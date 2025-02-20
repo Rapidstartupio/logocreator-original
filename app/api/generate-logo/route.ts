@@ -17,6 +17,25 @@ export async function POST(req: Request) {
     allEnvKeys: Object.keys(process.env),
   });
 
+  // Add request logging
+  console.log('Incoming request:', {
+    url: req.url,
+    method: req.method,
+    headers: Object.fromEntries(req.headers.entries())
+  });
+
+  // Add CORS headers
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
+
+  // Handle OPTIONS request for CORS
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers, status: 204 });
+  }
+
   const user = await currentUser();
 
   if (!user) {
