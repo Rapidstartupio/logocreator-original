@@ -134,12 +134,11 @@ export default function Page() {
     setIsLoading(true);
 
     try {
-      console.log('Making request to: https://logox.ai/api/generate-logo');
-      const res = await fetch('https://logox.ai/api/generate-logo', {
+      console.log('Making request to: /api/generate-logo');
+      const res = await fetch('/api/generate-logo', {
         method: "POST",
         headers: {
           'Content-Type': 'application/json',
-          'Origin': 'https://logox.ai'
         },
         body: JSON.stringify({
           userAPIKey: localStorage.getItem("userAPIKey") || undefined,
@@ -201,12 +200,11 @@ export default function Page() {
     setSelectedImageIndex(0);
 
     try {
-      console.log('Making request to: https://logox.ai/api/generate-logo');
-      const res = await fetch('https://logox.ai/api/generate-logo', {
+      console.log('Making request to: /api/generate-logo');
+      const res = await fetch('/api/generate-logo', {
         method: "POST",
         headers: {
           'Content-Type': 'application/json',
-          'Origin': 'https://logox.ai'
         },
         body: JSON.stringify({
           userAPIKey: localStorage.getItem("userAPIKey") || undefined,
