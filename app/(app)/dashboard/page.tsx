@@ -264,10 +264,12 @@ export default function Page() {
       <div className="flex w-full flex-col md:flex-row">
         <div className="relative flex h-[calc(100vh-64px)] w-full flex-col bg-[#2C2C2C] text-[#F3F3F3] md:h-screen md:max-w-sm md:overflow-y-auto">
           <form
-            onSubmit={(e) => {
+            onSubmit={async (e: React.FormEvent) => {
               e.preventDefault();
+              e.stopPropagation();
+              console.log('Form submitted, calling generateLogo');
               setGeneratedImages([]);
-              generateLogo();
+              await generateLogo();
             }}
             className="flex h-full w-full flex-col"
           >
