@@ -19,13 +19,27 @@ export function APIKeyDialog() {
   useEffect(() => {
     // Check for pending logo data after successful sign-up
     const pendingLogoData = localStorage.getItem('pendingLogoData')
-    if (pendingLogoData) {
-      // Here you would typically:
-      // 1. Save the logo to the user's account
-      // 2. Clear the pending data
+    if (pendingLogoData && user) {
+      const logoData = JSON.parse(pendingLogoData);
+      
+      // Send data to LeadConnector
+      fetch('/api/leadconnector', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          companyName: logoData.companyName,
+          businessType: logoData.additionalInfo,
+        }),
+      }).catch(error => {
+        console.error('Error sending data to LeadConnector:', error);
+      });
+
+      // Clear the pending data
       localStorage.removeItem('pendingLogoData')
     }
-  }, [])
+  }, [user])
 
   const handleSave = async () => {
     try {
