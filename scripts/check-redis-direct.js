@@ -1,7 +1,7 @@
 import fetch from 'node-fetch';
 
-const UPSTASH_REDIS_REST_URL = "https://ethical-jennet-17428.upstash.io";
-const UPSTASH_REDIS_REST_TOKEN = "AUQUAAIjcDE4ZGU1YjI4MDY1YzY0NjZiYmRhYjRmZTc4OWE1YjdkMHAxMA";
+const UPSTASH_REDIS_REST_URL = "";
+const UPSTASH_REDIS_REST_TOKEN = "";
 
 async function scanKeys(pattern = 'logocreator:*') {
   try {
