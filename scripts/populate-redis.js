@@ -10,8 +10,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const envPath = resolve(__dirname, '../.env');
 dotenv.config({ path: envPath });
 
-const UPSTASH_REDIS_REST_URL = "https://ethical-jennet-17428.upstash.io";
-const UPSTASH_REDIS_REST_TOKEN = "AUQUAAIjcDE4ZGU1YjI4MDY1YzY0NjZiYmRhYjRmZTc4OWE1YjdkMHAxMA";
+const UPSTASH_REDIS_REST_URL = "";
+const UPSTASH_REDIS_REST_TOKEN = "";
 
 async function setUserCredits(userId, credits) {
   try {
