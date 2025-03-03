@@ -72,11 +72,33 @@ export async function POST(req: Request) {
         url: redisUrl,
         token: process.env.UPSTASH_REDIS_REST_TOKEN,
       }),
-      // Allow 3 requests per 2 months on prod
+      // Allow 30 requests per 60 days
       limiter: Ratelimit.fixedWindow(30, "60 d"),
       analytics: true,
       prefix: "logocreator",
     });
+
+    const clerkClientInstance = await clerkClient();
+    const { success, remaining } = await ratelimit.limit(user.id);
+    const currentCredits = user.unsafeMetadata?.remaining as number || 0;
+
+    // Only update metadata if Redis remaining is higher than current credits
+    await clerkClientInstance.users.updateUserMetadata(user.id, {
+      unsafeMetadata: {
+        hasApiKey: false,
+        remaining: Math.max(currentCredits, remaining),
+      },
+    });
+
+    if (!success) {
+      return new Response(
+        "You've used up all your credits. Enter your own Together API Key to generate more logos.",
+        {
+          status: 429,
+          headers: { "Content-Type": "text/plain" },
+        },
+      );
+    }
   }
 
   // Initialize Together client with environment API key by default
@@ -119,27 +141,6 @@ export async function POST(req: Request) {
         hasApiKey: true,
       },
     });
-  } else {
-    // Handle rate limiting for non-BYOK users
-    if (ratelimit) {
-      const { success, remaining } = await ratelimit.limit(user.id);
-      await clerkClientInstance.users.updateUserMetadata(user.id, {
-        unsafeMetadata: {
-          hasApiKey: false,
-          remaining,
-        },
-      });
-
-      if (!success) {
-        return new Response(
-          "You've used up all your credits. Enter your own Together API Key to generate more logos.",
-          {
-            status: 429,
-            headers: { "Content-Type": "text/plain" },
-          },
-        );
-      }
-    }
   }
 
   const flashyStyle =
