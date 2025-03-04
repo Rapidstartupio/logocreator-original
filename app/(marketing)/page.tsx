@@ -29,7 +29,7 @@ export default function LandingPage() {
               alt="LogoX" 
               width={120} 
               height={120} 
-              className="w-[120px] h-[120px]" 
+              className="w-[120px] h-[60px]" 
               style={{ objectFit: 'contain' }}
             />
           </Link>
