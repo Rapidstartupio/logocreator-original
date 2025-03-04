@@ -1,11 +1,8 @@
 import { clerkClient, currentUser } from "@clerk/nextjs/server";
-import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import dedent from "dedent";
 import Together from "together-ai";
 import { z } from "zod";
-
-let ratelimit: Ratelimit | undefined;
 
 export async function POST(req: Request) {
   // Add detailed environment logging at the start
@@ -62,43 +59,81 @@ export async function POST(req: Request) {
 
   // Add rate limiting if Upstash API keys are set & no BYOK, otherwise skip
   if (process.env.UPSTASH_REDIS_REST_URL && !data.userAPIKey) {
+    console.log('Checking credits for user:', user.id);
+    
     // Add https:// prefix if not present
     const redisUrl = process.env.UPSTASH_REDIS_REST_URL.startsWith('https://')
       ? process.env.UPSTASH_REDIS_REST_URL
       : `https://${process.env.UPSTASH_REDIS_REST_URL}`;
 
-    ratelimit = new Ratelimit({
-      redis: new Redis({
-        url: redisUrl,
-        token: process.env.UPSTASH_REDIS_REST_TOKEN,
-      }),
-      // Allow 30 requests per 60 days
-      limiter: Ratelimit.fixedWindow(30, "60 d"),
-      analytics: true,
-      prefix: "logocreator",
+    console.log('Using Redis URL:', redisUrl);
+
+    const redis = new Redis({
+      url: redisUrl,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
     });
 
     const clerkClientInstance = await clerkClient();
-    const { success, remaining } = await ratelimit.limit(user.id);
-    const currentCredits = user.unsafeMetadata?.remaining as number || 0;
+    
+    // Check if user is a legacy user (has 150 credits)
+    const creditsKey = `logocreator:credits:${user.id}`;
+    let credits = await redis.get(creditsKey) as string;
+    console.log('Current credits in Redis:', { creditsKey, credits });
+    console.log('Current credits in Clerk:', user.unsafeMetadata?.remaining);
+    
+    // If user has 150 credits in Clerk but not in Redis, they're a legacy user - migrate their credits
+    if (!credits && user.unsafeMetadata?.remaining === 150) {
+      credits = "150";
+      await redis.set(creditsKey, credits);
+      console.log('Migrated legacy credits to Redis:', credits);
+    }
+    // If new user and no credits set yet, give them 30 credits
+    else if (!credits) {
+      credits = "30";
+      await redis.set(creditsKey, credits);
+      console.log('Set initial credits for new user:', credits);
+    }
+    // If user has credits in Clerk but not in Redis, sync them
+    else if (!credits && typeof user.unsafeMetadata?.remaining === 'number') {
+      credits = user.unsafeMetadata.remaining.toString();
+      await redis.set(creditsKey, credits);
+      console.log('Synced Clerk credits to Redis:', credits);
+    }
+    
+    const remainingCredits = parseInt(credits);
+    console.log('Remaining credits before decrement:', remainingCredits);
 
-    // Only update metadata if Redis remaining is higher than current credits
-    await clerkClientInstance.users.updateUserMetadata(user.id, {
-      unsafeMetadata: {
-        hasApiKey: false,
-        remaining: Math.max(currentCredits, remaining),
-      },
-    });
-
-    if (!success) {
+    if (remainingCredits > 0) {
+      const newCredits = remainingCredits - 1;
+      console.log('Attempting to decrement credits to:', newCredits);
+      
+      // Decrement credits by 1
+      const setResult = await redis.set(creditsKey, newCredits.toString());
+      console.log('Redis set result:', setResult);
+      
+      // Update Clerk metadata
+      await clerkClientInstance.users.updateUserMetadata(user.id, {
+        unsafeMetadata: {
+          hasApiKey: false,
+          remaining: newCredits,
+        },
+      });
+      console.log('Updated Clerk metadata with new credits:', newCredits);
+    } else {
+      console.log('No credits remaining for user');
       return new Response(
-        "You've used up all your credits. Enter your own Together API Key to generate more logos.",
+        "You don't have any credits left. Purchase more credits or enter your own Together API Key to generate more logos.",
         {
           status: 429,
           headers: { "Content-Type": "text/plain" },
         },
       );
     }
+  } else {
+    console.log('Skipping credit check:', { 
+      hasRedisUrl: Boolean(process.env.UPSTASH_REDIS_REST_URL), 
+      hasUserApiKey: Boolean(data.userAPIKey)
+    });
   }
 
   // Initialize Together client with environment API key by default

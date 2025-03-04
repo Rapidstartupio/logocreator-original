@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { clerkClient } from "@clerk/nextjs/server";
+import { Redis } from "@upstash/redis";
 import Stripe from "stripe";
 
 // Select keys based on environment
@@ -39,15 +40,31 @@ export async function POST(req: Request) {
       const userId = session.metadata.userId;
       const creditsToAdd = parseInt(session.metadata.credits);
 
-      // Get the current user's metadata
-      const clerk = await clerkClient();
-      const user = await clerk.users.getUser(userId);
-      const currentCredits = (user.unsafeMetadata?.remaining as number) || 0;
+      // Initialize Redis client
+      const redisUrl = process.env.UPSTASH_REDIS_REST_URL?.startsWith('https://')
+        ? process.env.UPSTASH_REDIS_REST_URL
+        : `https://${process.env.UPSTASH_REDIS_REST_URL}`;
 
-      // Update the user's credits
+      const redis = new Redis({
+        url: redisUrl!,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+      });
+
+      // Get current credits
+      const creditsKey = `logocreator:credits:${userId}`;
+      const currentCredits = await redis.get(creditsKey) as string;
+      const remainingCredits = currentCredits ? parseInt(currentCredits) : 0;
+
+      // Add new credits
+      await redis.set(creditsKey, (remainingCredits + creditsToAdd).toString());
+
+      // Get Clerk client
+      const clerk = await clerkClient();
+
+      // Update the user's credits in Clerk
       await clerk.users.updateUserMetadata(userId, {
         unsafeMetadata: {
-          remaining: currentCredits + creditsToAdd,
+          remaining: remainingCredits + creditsToAdd,
           hasApiKey: false,
         },
       });
@@ -55,7 +72,7 @@ export async function POST(req: Request) {
 
     return new NextResponse(null, { status: 200 });
   } catch (error) {
-    console.error("Error:", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    console.error('Stripe webhook error:', error);
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 } 

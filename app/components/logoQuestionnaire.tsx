@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -42,12 +42,17 @@ export default function LogoQuestionnaire() {
 
   const { isSignedIn } = useUser();
 
+  // Add useEffect to ensure background color is always white
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, backgroundColor: "White" }));
+  }, []);
+
   const questions: Question[] = [
     { id: 0, title: "What's Your Company Name?", type: "input" },
     { id: 1, title: "Choose Your Layout", type: "layout" },
     { id: 2, title: "Select Your Style", type: "style" },
     { id: 3, title: "Pick Your Colors", type: "color" },
-    { id: 4, title: "Additional Information (Optional)", type: "textarea" },
+    { id: 4, title: "Which of the following best describes your business:", type: "textarea" },
   ]
 
   const slideVariants = {
@@ -285,40 +290,14 @@ export default function LogoQuestionnaire() {
               </div>
             </div>
 
-            {/* Background Color */}
-            <div>
-              <label className="mb-2 block text-xs font-bold uppercase text-[#6F6F6F]">
-                Choose Your Background Color
-              </label>
-              <div className="grid grid-cols-3 gap-4">
-                {[
-                  { name: "White", class: "bg-white" },
-                  { name: "Black", class: "bg-black" },
-                  { name: "Transparent", class: "bg-transparent border border-dashed border-gray-600" }
-                ].map((color) => (
-                  <button
-                    key={color.name}
-                    onClick={() => setFormData({ ...formData, backgroundColor: color.name })}
-                    className={`p-6 rounded-lg border-2 transition-all hover:scale-105 ${
-                      formData.backgroundColor === color.name
-                        ? "border-blue-500 bg-blue-500/20"
-                        : "border-gray-700 hover:border-blue-500/50"
-                    }`}
-                  >
-                    <div className="h-12 flex items-center justify-center">
-                      <div className={`w-12 h-12 rounded-md ${color.class}`} />
-                    </div>
-                    <div className="text-sm text-gray-400 mt-2 capitalize">{color.name}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
+            {/* Background Color - Hidden */}
+            <div className="hidden" />
           </div>
         )
       case "textarea":
         return (
           <div className="space-y-4">
-            <label className="text-sm text-gray-400">Which of the following best describes your business:</label>
+            <label className="hidden text-sm text-gray-400">Which of the following best describes your business:</label>
             <div className="grid gap-3">
               <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
                 <input
@@ -474,20 +453,9 @@ export default function LogoQuestionnaire() {
   return (
     <div className="min-h-[600px] flex flex-col items-center justify-center p-6 bg-gray-900 text-white">
       <div className="w-full max-w-2xl">
-        <AnimatePresence initial={false} mode="wait" custom={direction}>
-          <motion.div
-            key={currentQuestion}
-            custom={direction}
-            variants={slideVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{
-              x: { type: "spring", stiffness: 300, damping: 30 },
-              opacity: { duration: 0.2 },
-            }}
-            className="w-full"
-          >
+        {/* Render the last question first when it's active */}
+        {currentQuestion === questions.length - 1 ? (
+          <div>
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold mb-2">{questions[currentQuestion].title}</h2>
               <div className="flex gap-1 justify-center">
@@ -501,97 +469,121 @@ export default function LogoQuestionnaire() {
                 ))}
               </div>
             </div>
-            <div className="min-h-[300px] flex items-center justify-center">
-              <div className="w-full">
-                {currentQuestion !== questions.length - 1 && (
-                  <QuestionContent question={questions[currentQuestion]} />
-                )}
+            <div className="space-y-4">
+              <label className="text-sm text-gray-400">Which of the following best describes your business:</label>
+              <div className="grid gap-3">
+                <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="businessType"
+                    className="text-blue-500"
+                    onChange={() => setFormData(prev => ({
+                      ...prev,
+                      additionalInfo: "Physical retail store selling everyday products"
+                    }))}
+                  />
+                  <span className="text-sm text-gray-300">Brick & Mortar: I have a physical location where I sell products and/or services</span>
+                </label>
+                
+                <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="businessType"
+                    className="text-blue-500"
+                    onChange={() => setFormData(prev => ({
+                      ...prev,
+                      additionalInfo: "Online store selling electronics and gadgets"
+                    }))}
+                  />
+                  <span className="text-sm text-gray-300">eCommerce: selling products online</span>
+                </label>
+                
+                <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="businessType"
+                    className="text-blue-500"
+                    onChange={() => setFormData(prev => ({
+                      ...prev,
+                      additionalInfo: "Educational content and online courses"
+                    }))}
+                  />
+                  <span className="text-sm text-gray-300">Information Products: books, courses, etc</span>
+                </label>
+                
+                <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="businessType"
+                    className="text-blue-500"
+                    onChange={() => setFormData(prev => ({
+                      ...prev,
+                      additionalInfo: "Affiliate marketing business promoting tech products"
+                    }))}
+                  />
+                  <span className="text-sm text-gray-300">Affiliate Marketing: selling other companies products & services</span>
+                </label>
+                
+                <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="businessType"
+                    className="text-blue-500"
+                    onChange={() => setFormData(prev => ({
+                      ...prev,
+                      additionalInfo: "Software development agency"
+                    }))}
+                  />
+                  <span className="text-sm text-gray-300">Other: software, real estate agent, blogging, agency, etc</span>
+                </label>
+              </div>
+
+              <div className="mt-6 space-y-2">
+                <label className="text-sm text-gray-400">Or enter custom information:</label>
+                <textarea
+                  placeholder="Enter any additional information or requirements..."
+                  value={formData.additionalInfo}
+                  onChange={(e) => setFormData(prev => ({ ...prev, additionalInfo: e.target.value }))}
+                  className="w-full min-h-[150px] rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
               </div>
             </div>
-          </motion.div>
-        </AnimatePresence>
-
-        {/* Render the last question (textarea) completely outside of animation context */}
-        {currentQuestion === questions.length - 1 && (
-          <div className="space-y-4">
-            <label className="text-sm text-gray-400">Which of the following best describes your business:</label>
-            <div className="grid gap-3">
-              <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
-                <input
-                  type="radio"
-                  name="businessType"
-                  className="text-blue-500"
-                  onChange={() => setFormData(prev => ({
-                    ...prev,
-                    additionalInfo: "Physical retail store selling everyday products"
-                  }))}
-                />
-                <span className="text-sm text-gray-300">Brick & Mortar: I have a physical location where I sell products and/or services</span>
-              </label>
-              
-              <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
-                <input
-                  type="radio"
-                  name="businessType"
-                  className="text-blue-500"
-                  onChange={() => setFormData(prev => ({
-                    ...prev,
-                    additionalInfo: "Online store selling electronics and gadgets"
-                  }))}
-                />
-                <span className="text-sm text-gray-300">eCommerce: selling products online</span>
-              </label>
-              
-              <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
-                <input
-                  type="radio"
-                  name="businessType"
-                  className="text-blue-500"
-                  onChange={() => setFormData(prev => ({
-                    ...prev,
-                    additionalInfo: "Educational content and online courses"
-                  }))}
-                />
-                <span className="text-sm text-gray-300">Information Products: books, courses, etc</span>
-              </label>
-              
-              <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
-                <input
-                  type="radio"
-                  name="businessType"
-                  className="text-blue-500"
-                  onChange={() => setFormData(prev => ({
-                    ...prev,
-                    additionalInfo: "Affiliate marketing business promoting tech products"
-                  }))}
-                />
-                <span className="text-sm text-gray-300">Affiliate Marketing: selling other companies products & services</span>
-              </label>
-              
-              <label className="flex items-center space-x-3 p-3 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer">
-                <input
-                  type="radio"
-                  name="businessType"
-                  className="text-blue-500"
-                  onChange={() => setFormData(prev => ({
-                    ...prev,
-                    additionalInfo: "Software development agency"
-                  }))}
-                />
-                <span className="text-sm text-gray-300">Other: software, real estate agent, blogging, agency, etc</span>
-              </label>
-            </div>
-
-            <div className="mt-6 space-y-2">
-              <label className="text-sm text-gray-400">Or enter custom information:</label>
-              <textarea
-                placeholder="Enter any additional information or requirements..."
-                value={formData.additionalInfo}
-                onChange={(e) => setFormData(prev => ({ ...prev, additionalInfo: e.target.value }))}
-                className="w-full min-h-[150px] rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
           </div>
+        ) : (
+          <AnimatePresence initial={false} mode="wait" custom={direction}>
+            <motion.div
+              key={currentQuestion}
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{
+                x: { type: "spring", stiffness: 300, damping: 30 },
+                opacity: { duration: 0.2 },
+              }}
+              className="w-full"
+            >
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold mb-2">{questions[currentQuestion].title}</h2>
+                <div className="flex gap-1 justify-center">
+                  {questions.map((_, index) => (
+                    <div
+                      key={index}
+                      className={`h-1 w-8 rounded-full transition-colors ${
+                        index === currentQuestion ? "bg-blue-500" : "bg-gray-700"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="min-h-[300px] flex items-center justify-center">
+                <div className="w-full">
+                  <QuestionContent question={questions[currentQuestion]} />
+                </div>
+              </div>
+            </motion.div>
+          </AnimatePresence>
         )}
 
         <div className="flex gap-4 justify-between mt-8">
