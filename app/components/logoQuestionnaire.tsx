@@ -609,7 +609,7 @@ export default function LogoQuestionnaire() {
             ) : currentQuestion === questions.length - 1 ? (
               "Generate Logo"
             ) : (
-              "Next Question"
+              "Customize Your Logo"
             )}
           </Button>
         </div>
