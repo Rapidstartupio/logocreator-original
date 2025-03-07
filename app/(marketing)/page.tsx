@@ -150,21 +150,21 @@ export default function LandingPage() {
             <div className="bg-gray-800 rounded-lg p-6 mb-6">
               <span className="text-purple-500 text-sm font-semibold">Step 1</span>
               <h3 className="text-white text-xl font-semibold mb-4">Explain Idea</h3>
-              <p className="text-gray-400">Just answer 5 simple questions and tell us what type of business you have and our robots will generate dozens of custom logo designs for you.</p>
+              <p className="text-gray-400">Just answer a few simple questions about your business and we will generate custom logo designs for you.</p>
             </div>
           </div>
           <div className="text-center">
             <div className="bg-gray-800 rounded-lg p-6 mb-6">
               <span className="text-purple-500 text-sm font-semibold">Step 2</span>
               <h3 className="text-white text-xl font-semibold mb-4">Customize Your Logo</h3>
-              <p className="text-gray-400">Using our guided editor you can easily fine-tune your dream logo</p>
+              <p className="text-gray-400">Using our custom options within the dashboard you can easily fine-tune your dream logo design</p>
             </div>
           </div>
           <div className="text-center">
             <div className="bg-gray-800 rounded-lg p-6 mb-6">
               <span className="text-purple-500 text-sm font-semibold">Step 3</span>
               <h3 className="text-white text-xl font-semibold mb-4">Launch Your Company</h3>
-              <p className="text-gray-400">How does this step work? why is this way of doing things better?</p>
+              <p className="text-gray-400">Download your logo instantly with source files - ready for social media and your website!</p>
             </div>
           </div>
         </div>
