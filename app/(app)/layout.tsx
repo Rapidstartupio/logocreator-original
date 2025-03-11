@@ -49,7 +49,7 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" className="h-full">
         <head>
-          <PlausibleProvider domain="logo-creator.io" />
+          <PlausibleProvider domain="logox.ai.io" />
           <link rel="icon" href="/favicon.ico" sizes="any" />
           <meta name="color-scheme" content="dark" />
           {/* Google tag (gtag.js) */}
