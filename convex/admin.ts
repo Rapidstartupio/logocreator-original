@@ -18,14 +18,15 @@ export const getAllUsers = query({
             if (!user.userId) {
               console.warn("Found user without userId:", user._id);
               return {
-                ...user,
-                actualLogoCount: 0,
+                _id: user._id,
+                _creationTime: user._creationTime,
                 userId: "unknown",
                 email: user.email || "unknown",
                 totalLogosGenerated: user.totalLogosGenerated || 0,
                 lastActive: user.lastActive || 0,
                 lastCompanyName: user.lastCompanyName || "unknown",
-                lastBusinessType: user.lastBusinessType || "unknown"
+                lastBusinessType: user.lastBusinessType || "unknown",
+                actualLogoCount: 0
               };
             }
 
@@ -41,14 +42,15 @@ export const getAllUsers = query({
               });
 
             return {
-              ...user,
-              actualLogoCount: logoCount,
-              // Ensure all required fields have defaults
+              _id: user._id,
+              _creationTime: user._creationTime,
+              userId: user.userId,
               email: user.email || "unknown",
               totalLogosGenerated: user.totalLogosGenerated || 0,
               lastActive: user.lastActive || 0,
               lastCompanyName: user.lastCompanyName || "unknown",
-              lastBusinessType: user.lastBusinessType || "unknown"
+              lastBusinessType: user.lastBusinessType || "unknown",
+              actualLogoCount: logoCount
             };
           } catch (err) {
             console.error("Error processing user:", user._id, err);
