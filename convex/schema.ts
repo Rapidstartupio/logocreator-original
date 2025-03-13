@@ -11,9 +11,22 @@ export default defineSchema({
     backgroundColor: v.string(),
     additionalInfo: v.optional(v.string()),
     images: v.array(v.string()),
-    timestamp: v.number()
+    timestamp: v.number(),
+    businessType: v.optional(v.string()),
+    prompt: v.optional(v.string()),
+    styleDetails: v.optional(v.string()),
+    layoutDetails: v.optional(v.string()),
+    numberOfImages: v.optional(v.number()),
+    isDemo: v.optional(v.boolean()),
+    generationTime: v.optional(v.number()),
+    modelUsed: v.optional(v.string()),
+    status: v.optional(v.string()),
+    errorMessage: v.optional(v.string())
   }).index("by_user", ["userId"])
-  .index("by_timestamp", ["timestamp"]),
+    .index("by_timestamp", ["timestamp"])
+    .index("by_style", ["style"])
+    .index("by_layout", ["layout"])
+    .index("by_status", ["status"]),
 
   userAnalytics: defineTable({
     userId: v.string(),
@@ -22,6 +35,8 @@ export default defineSchema({
     lastActive: v.number(),
     lastCompanyName: v.string(),
     lastBusinessType: v.optional(v.string()),
+    isAdmin: v.optional(v.boolean()),
+    credits: v.optional(v.number()),
   }).index("by_user", ["userId"])
   .index("by_lastActive", ["lastActive"])
   .index("by_totalLogos", ["totalLogosGenerated"])

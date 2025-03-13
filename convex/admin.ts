@@ -8,8 +8,26 @@ export const getAllUsers = query({
     const users = await ctx.db
       .query("userAnalytics")
       .collect();
+
+    // Get logo counts for each user
+    const usersWithLogoCounts = await Promise.all(
+      users.map(async (user) => {
+        const logoCount = await ctx.db
+          .query("logoHistory")
+          .withIndex("by_user")
+          .filter(q => q.eq("userId", user.userId))
+          .collect()
+          .then(logos => logos.length);
+
+        return {
+          ...user,
+          actualLogoCount: logoCount
+        };
+      })
+    );
+    
     console.log(`Found ${users.length} users in userAnalytics`);
-    return users;
+    return usersWithLogoCounts;
   },
 });
 

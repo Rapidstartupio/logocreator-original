@@ -1,6 +1,8 @@
 import Together from "together-ai";
 import { z } from "zod";
 import dedent from "dedent";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "@/convex/_generated/api";
 
 // Move the function outside the POST handler
 const generateSingleImage = async (client: Together, prompt: string) => {
@@ -24,6 +26,19 @@ const generateSingleImage = async (client: Together, prompt: string) => {
 };
 
 export async function POST(req: Request) {
+  // Add CORS headers
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Content-Type': 'application/json',
+  };
+
+  // Handle OPTIONS request for CORS
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers, status: 204 });
+  }
+
   try {
     const json = await req.json();
     console.log('Request body:', {
@@ -46,7 +61,7 @@ export async function POST(req: Request) {
     // Validate Together API key
     if (!process.env.TOGETHER_API_KEY) {
       console.error('Together API key is not configured');
-      return new Response('API configuration error', { status: 500 });
+      return Response.json({ error: 'API configuration error' }, { status: 500, headers });
     }
 
     // Initialize Together client
@@ -97,16 +112,82 @@ Primary color is ${data.selectedPrimaryColor.toLowerCase()} and background color
 
     // For demo, limit to 1 image regardless of request
     try {
+      const startTime = Date.now();
       const image = await generateSingleImage(client, prompt);
-      return Response.json([image], { status: 200 });
+
+      // Initialize Convex client
+      const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL || "");
+
+      // Save demo logo history
+      try {
+        await convex.mutation(api.logoHistory.save, {
+          companyName: data.companyName,
+          layout: data.selectedLayout,
+          style: data.selectedStyle,
+          primaryColor: data.selectedPrimaryColor,
+          backgroundColor: data.selectedBackgroundColor,
+          additionalInfo: data.additionalInfo,
+          images: [image],
+          // New fields
+          businessType: data.additionalInfo,
+          prompt: prompt,
+          styleDetails: styleLookup[data.selectedStyle],
+          layoutDetails: layoutLookup[data.selectedLayout],
+          numberOfImages: 1, // Demo always generates 1 image
+          isDemo: true,
+          generationTime: Date.now() - startTime,
+          modelUsed: "black-forest-labs/FLUX.1.1-pro",
+          status: "success"
+        });
+      } catch (convexError) {
+        console.error('Error saving to Convex:', convexError);
+        // Continue even if saving to Convex fails
+      }
+
+      return Response.json({ images: [image] }, { headers });
     } catch (error) {
       console.error('Error generating demo logo:', error);
-      return new Response('Failed to generate demo logo', { status: 500 });
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+
+      // Save failed demo attempt
+      try {
+        const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL || "");
+        await convex.mutation(api.logoHistory.save, {
+          companyName: data.companyName,
+          layout: data.selectedLayout,
+          style: data.selectedStyle,
+          primaryColor: data.selectedPrimaryColor,
+          backgroundColor: data.selectedBackgroundColor,
+          additionalInfo: data.additionalInfo,
+          images: [],
+          // New fields
+          businessType: data.additionalInfo,
+          prompt: prompt,
+          styleDetails: styleLookup[data.selectedStyle],
+          layoutDetails: layoutLookup[data.selectedLayout],
+          numberOfImages: 1,
+          isDemo: true,
+          generationTime: 0,
+          modelUsed: "black-forest-labs/FLUX.1.1-pro",
+          status: "failed",
+          errorMessage: errorMessage
+        });
+      } catch (convexError) {
+        console.error('Error saving failed demo attempt to Convex:', convexError);
+      }
+
+      return Response.json(
+        { error: errorMessage },
+        { status: 500, headers }
+      );
     }
   } catch (error) {
     console.error('Demo API Error:', error);
-    return new Response('Failed to generate demo logo', { status: 500 });
+    return Response.json(
+      { error: 'Failed to generate demo logo' },
+      { status: 500, headers }
+    );
   }
 }
 
-export const runtime = "edge"; 
+export const runtime = "edge";

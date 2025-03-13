@@ -248,23 +248,81 @@ Primary color is ${data.selectedPrimaryColor.toLowerCase()} and background color
         companyName: data.companyName,
         businessType: data.additionalInfo
       });
+
+      // Save logo history with all new fields
+      const startTime = Date.now();
+      await convex.mutation(api.logoHistory.save, {
+        companyName: data.companyName,
+        layout: data.selectedLayout,
+        style: data.selectedStyle,
+        primaryColor: data.selectedPrimaryColor,
+        backgroundColor: data.selectedBackgroundColor,
+        additionalInfo: data.additionalInfo,
+        images: images,
+        // New fields
+        businessType: data.additionalInfo,
+        prompt: prompt,
+        styleDetails: styleLookup[data.selectedStyle],
+        layoutDetails: layoutLookup[data.selectedLayout],
+        numberOfImages: data.numberOfImages,
+        isDemo: false,
+        generationTime: Date.now() - startTime,
+        modelUsed: "black-forest-labs/FLUX.1.1-pro",
+        status: "success"
+      });
     } catch (error) {
-      console.error('Error updating user analytics:', error);
-      // Continue even if analytics update fails
+      console.error("Error updating Convex:", error);
+      // Continue execution even if Convex update fails
     }
 
-    return Response.json(images, { status: 200 });
-  } catch (error) {
-    console.error('Error generating images:', error);
-    
-    // Return appropriate error message based on error type
-    const err = error as Error;
-    const status = err.message?.includes('Credit limit') ? 402 : 500;
-    const message = err.message || 'Failed to generate logo';
-    
     return Response.json(
-      { error: message },
-      { status }
+      { images },
+      {
+        headers: {
+          ...headers,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+  } catch (error) {
+    console.error("Error in logo generation:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    
+    // Save failed attempt to logo history
+    try {
+      await convex.mutation(api.logoHistory.save, {
+        companyName: data.companyName,
+        layout: data.selectedLayout,
+        style: data.selectedStyle,
+        primaryColor: data.selectedPrimaryColor,
+        backgroundColor: data.selectedBackgroundColor,
+        additionalInfo: data.additionalInfo,
+        images: [],
+        // New fields
+        businessType: data.additionalInfo,
+        prompt: prompt,
+        styleDetails: styleLookup[data.selectedStyle],
+        layoutDetails: layoutLookup[data.selectedLayout],
+        numberOfImages: data.numberOfImages,
+        isDemo: false,
+        generationTime: 0,
+        modelUsed: "black-forest-labs/FLUX.1.1-pro",
+        status: "failed",
+        errorMessage: errorMessage
+      });
+    } catch (convexError) {
+      console.error("Error saving failed attempt to Convex:", convexError);
+    }
+
+    return Response.json(
+      { error: errorMessage },
+      {
+        status: error instanceof Error && (error as TogetherError).status ? (error as TogetherError).status : 500,
+        headers: {
+          ...headers,
+          "Content-Type": "application/json",
+        },
+      }
     );
   }
 }
