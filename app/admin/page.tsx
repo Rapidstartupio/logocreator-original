@@ -22,7 +22,8 @@ export default function AdminDashboard() {
   const users = useQuery(api.admin.getAllUsers);
   const recentLogos = useQuery(api.admin.getRecentLogos, { limit: 50 });
   
-  const formatTime = (timestamp: number) => {
+  const formatTime = (timestamp: number | undefined) => {
+    if (!timestamp) return "N/A";
     return new Date(timestamp).toLocaleString();
   };
 
@@ -82,9 +83,9 @@ export default function AdminDashboard() {
                     <TableBody>
                       {users?.map((user) => (
                         <TableRow key={user._id} className="hover:bg-gray-800">
-                          <TableCell>{user.email}</TableCell>
-                          <TableCell className="font-mono text-sm">{user.userId}</TableCell>
-                          <TableCell>{user.totalLogosGenerated}</TableCell>
+                          <TableCell>{user.email || "N/A"}</TableCell>
+                          <TableCell className="font-mono text-sm">{user.userId || "N/A"}</TableCell>
+                          <TableCell>{user.totalLogosGenerated || 0}</TableCell>
                           <TableCell>{formatTime(user.lastActive)}</TableCell>
                         </TableRow>
                       ))}
@@ -114,9 +115,9 @@ export default function AdminDashboard() {
                     <TableBody>
                       {recentLogos?.map((logo) => (
                         <TableRow key={logo._id} className="hover:bg-gray-800">
-                          <TableCell>{logo.companyName}</TableCell>
-                          <TableCell className="font-mono text-sm">{logo.userId}</TableCell>
-                          <TableCell>{logo.style}</TableCell>
+                          <TableCell>{logo.companyName || "N/A"}</TableCell>
+                          <TableCell className="font-mono text-sm">{logo.userId || "N/A"}</TableCell>
+                          <TableCell>{logo.style || "N/A"}</TableCell>
                           <TableCell>{formatTime(logo.timestamp)}</TableCell>
                         </TableRow>
                       ))}

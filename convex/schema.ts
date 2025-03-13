@@ -3,7 +3,7 @@ import { v } from "convex/values";
 
 export default defineSchema({
   logoHistory: defineTable({
-    userId: v.string(),
+    userId: v.optional(v.string()),
     companyName: v.string(),
     layout: v.string(),
     style: v.string(),

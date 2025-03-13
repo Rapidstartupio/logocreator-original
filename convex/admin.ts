@@ -14,26 +14,11 @@ export const getAllUsers = query({
       const usersWithLogoCounts = await Promise.all(
         users.map(async (user) => {
           try {
-            // Make sure user has required fields
-            if (!user.userId) {
-              console.warn("Found user without userId:", user._id);
-              return {
-                _id: user._id,
-                _creationTime: user._creationTime,
-                userId: "unknown",
-                email: user.email || "unknown",
-                totalLogosGenerated: user.totalLogosGenerated || 0,
-                lastActive: user.lastActive || 0,
-                lastCompanyName: user.lastCompanyName || "unknown",
-                lastBusinessType: user.lastBusinessType || "unknown",
-                actualLogoCount: 0
-              };
-            }
-
+            // Get logo count for user
             const logoCount = await ctx.db
               .query("logoHistory")
               .withIndex("by_user")
-              .filter(q => q.eq("userId", user.userId))
+              .filter(q => q.eq(q.field("userId"), user.userId))
               .collect()
               .then(logos => logos.length)
               .catch(err => {
@@ -41,16 +26,19 @@ export const getAllUsers = query({
                 return 0;
               });
 
+            // Return user data with safe fallbacks for optional fields
             return {
               _id: user._id,
               _creationTime: user._creationTime,
               userId: user.userId,
-              email: user.email || "unknown",
-              totalLogosGenerated: user.totalLogosGenerated || 0,
-              lastActive: user.lastActive || 0,
-              lastCompanyName: user.lastCompanyName || "unknown",
-              lastBusinessType: user.lastBusinessType || "unknown",
-              actualLogoCount: logoCount
+              email: user.email,
+              totalLogosGenerated: user.totalLogosGenerated,
+              lastActive: user.lastActive,
+              lastCompanyName: user.lastCompanyName,
+              lastBusinessType: user.lastBusinessType || "",
+              actualLogoCount: logoCount,
+              credits: user.credits || 0,
+              isAdmin: user.isAdmin || false
             };
           } catch (err) {
             console.error("Error processing user:", user._id, err);
@@ -60,7 +48,7 @@ export const getAllUsers = query({
       );
       
       // Filter out any null results from errors
-      const validUsers = usersWithLogoCounts.filter(user => user !== null);
+      const validUsers = usersWithLogoCounts.filter((user): user is NonNullable<typeof user> => user !== null);
       console.log(`Found ${validUsers.length} valid users in userAnalytics`);
       return validUsers;
     } catch (err) {
@@ -76,14 +64,45 @@ export const getRecentLogos = query({
   },
   handler: async (ctx, args) => {
     console.log("Fetching logos from logoHistory...");
-    const limit = args.limit || 50; // Default to 50 if not provided
-    const logos = await ctx.db
-      .query("logoHistory")
-      .withIndex("by_timestamp")
-      .order("desc")
-      .take(limit);
-    console.log(`Found ${logos.length} logos in logoHistory`);
-    return logos;
+    try {
+      const limit = args.limit || 50; // Default to 50 if not provided
+      const logos = await ctx.db
+        .query("logoHistory")
+        .withIndex("by_timestamp")
+        .order("desc")
+        .take(limit);
+
+      // Map logos to ensure all required fields are present
+      const processedLogos = logos.map(logo => ({
+        _id: logo._id,
+        _creationTime: logo._creationTime,
+        userId: logo.userId || "",
+        companyName: logo.companyName,
+        layout: logo.layout,
+        style: logo.style,
+        primaryColor: logo.primaryColor,
+        backgroundColor: logo.backgroundColor,
+        additionalInfo: logo.additionalInfo || "",
+        images: logo.images,
+        timestamp: logo.timestamp,
+        businessType: logo.businessType || "",
+        prompt: logo.prompt || "",
+        styleDetails: logo.styleDetails || "",
+        layoutDetails: logo.layoutDetails || "",
+        numberOfImages: logo.numberOfImages || 1,
+        isDemo: logo.isDemo || false,
+        generationTime: logo.generationTime || 0,
+        modelUsed: logo.modelUsed || "",
+        status: logo.status || "success",
+        errorMessage: logo.errorMessage || ""
+      }));
+
+      console.log(`Found ${processedLogos.length} logos in logoHistory`);
+      return processedLogos;
+    } catch (err) {
+      console.error("Error in getRecentLogos:", err);
+      return []; // Return empty array instead of crashing
+    }
   },
 });
 
