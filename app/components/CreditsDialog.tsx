@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/app/components/ui/dialog";
 import { Button } from "@/app/components/ui/button";
 import { useUser } from "@clerk/nextjs";
@@ -12,6 +12,40 @@ const CREDIT_BUNDLES = [
 export function CreditsDialog() {
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useUser();
+
+  // Check and initialize metadata if needed
+  useEffect(() => {
+    const initializeMetadata = async () => {
+      if (!user) return;
+
+      const metadata = user.unsafeMetadata || {};
+      let needsUpdate = false;
+
+      // Check if required fields exist and are of correct type
+      if (metadata.remaining === undefined || typeof metadata.remaining !== 'number') {
+        metadata.remaining = 0; // Initialize with 0 credits for existing users
+        needsUpdate = true;
+      }
+
+      if (metadata.hasApiKey === undefined) {
+        metadata.hasApiKey = false;
+        needsUpdate = true;
+      }
+
+      // Update user if needed
+      if (needsUpdate) {
+        try {
+          await user.update({
+            unsafeMetadata: metadata
+          });
+        } catch (error) {
+          console.error('Error initializing user metadata:', error);
+        }
+      }
+    };
+
+    initializeMetadata();
+  }, [user]);
 
   const handlePurchase = async (credits: number, price: number) => {
     try {
@@ -38,11 +72,16 @@ export function CreditsDialog() {
     }
   };
 
+  // Get credits safely, defaulting to 0 if metadata is missing
+  const currentCredits = typeof user?.unsafeMetadata?.remaining === 'number' 
+    ? user.unsafeMetadata.remaining 
+    : 0;
+
   return (
     <Dialog>
       <DialogTrigger asChild>
         <button className="text-sm text-white hover:text-gray-300">
-          {String(user?.unsafeMetadata?.remaining !== undefined ? user.unsafeMetadata.remaining : 3)} credits
+          {currentCredits} credits
         </button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
