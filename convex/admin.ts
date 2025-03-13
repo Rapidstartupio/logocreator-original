@@ -105,17 +105,37 @@ export const syncClerkUsers = mutation({
     adminKey: v.string(),
   },
   handler: async (ctx, args) => {
+    console.log("🔄 syncClerkUsers: Starting sync...", {
+      userCount: args.usersData.length,
+      adminKey: args.adminKey ? "provided" : "missing"
+    });
+
     try {
       let userCount = 0;
+      let existingCount = 0;
+      let newCount = 0;
+
+      // First, let's check what users we already have
+      const existingUsers = await ctx.db.query("userAnalytics").collect();
+      console.log("📊 Existing users in database:", {
+        count: existingUsers.length,
+        emails: existingUsers.map(u => u.email)
+      });
+
       for (const userData of args.usersData) {
         const { userId, email } = userData;
+        console.log(`🔍 Processing user: ${email}`);
         
         const existingUser = await ctx.db
           .query("userAnalytics")
           .withIndex("by_user", (q) => q.eq("userId", userId))
           .first();
         
-        if (!existingUser) {
+        if (existingUser) {
+          console.log(`👤 User ${email} already exists`);
+          existingCount++;
+        } else {
+          console.log(`➕ Adding new user: ${email}`);
           await ctx.db.insert("userAnalytics", {
             userId,
             email,
@@ -124,13 +144,20 @@ export const syncClerkUsers = mutation({
             lastCompanyName: "Unknown",
             lastBusinessType: "Unknown",
           });
+          newCount++;
           userCount++;
         }
       }
       
-      return { success: true, userCount };
+      console.log("✅ Sync complete:", {
+        totalProcessed: args.usersData.length,
+        existing: existingCount,
+        new: newCount
+      });
+      
+      return { success: true, userCount, existingCount, newCount };
     } catch (error) {
-      console.error("Error syncing users:", error);
+      console.error("❌ Error syncing users:", error);
       return { success: false, error: String(error) };
     }
   },
@@ -138,31 +165,54 @@ export const syncClerkUsers = mutation({
 
 export const getUsersWithLogoData = query({
   handler: async (ctx) => {
-    // Get all users with their analytics
-    const users = await ctx.db
-      .query("userAnalytics")
-      .withIndex("by_lastActive")
-      .order("desc")
-      .collect();
+    console.log("📥 getUsersWithLogoData: Starting request...");
     
-    // Get the most recent logo for each user
-    const userLogos = await Promise.all(
-      users.map(async (user) => {
-        const lastLogo = await ctx.db
-          .query("logoHistory")
-          .withIndex("by_user")
-          .filter(q => q.eq("userId", user.userId))
-          .order("desc")
-          .first();
-        
-        return {
-          ...user,
-          lastLogoTimestamp: lastLogo?.timestamp || null
-        };
-      })
-    );
-    
-    return userLogos;
+    try {
+      // Get all users with their analytics
+      const users = await ctx.db
+        .query("userAnalytics")
+        .withIndex("by_lastActive")
+        .order("desc")
+        .collect();
+      
+      console.log("👥 Retrieved users:", {
+        count: users.length,
+        emails: users.map(u => u.email)
+      });
+      
+      // Get the most recent logo for each user
+      const userLogos = await Promise.all(
+        users.map(async (user) => {
+          console.log(`🎨 Fetching logos for user: ${user.email}`);
+          
+          const logos = await ctx.db
+            .query("logoHistory")
+            .withIndex("by_user")
+            .filter(q => q.eq("userId", user.userId))
+            .collect();
+            
+          const lastLogo = logos[0];
+          
+          console.log(`📊 Found ${logos.length} logos for ${user.email}`);
+          
+          return {
+            ...user,
+            totalLogos: logos.length,
+            lastLogoTimestamp: lastLogo?.timestamp || null
+          };
+        })
+      );
+      
+      console.log("✅ getUsersWithLogoData complete:", {
+        totalUsers: userLogos.length,
+        usersWithLogos: userLogos.filter(u => u.totalLogos > 0).length
+      });
+      
+      return userLogos;
+    } catch (error) {
+      console.error("❌ getUsersWithLogoData error:", error);
+      throw error;
+    }
   },
 });
 
@@ -284,4 +334,38 @@ export const testAdminAccess = query({
       throw error;
     }
   },
+});
+
+// Let's also add a diagnostic function
+export const getDatabaseStats = query({
+  handler: async (ctx) => {
+    console.log("📊 Getting database stats...");
+    
+    try {
+      const users = await ctx.db.query("userAnalytics").collect();
+      const logos = await ctx.db.query("logoHistory").collect();
+      
+      const stats = {
+        users: {
+          total: users.length,
+          emails: users.map(u => u.email),
+          withLogos: users.filter(u => u.totalLogosGenerated > 0).length
+        },
+        logos: {
+          total: logos.length,
+          byUser: logos.reduce<Record<string, number>>((acc, logo) => {
+            acc[logo.userId] = (acc[logo.userId] || 0) + 1;
+            return acc;
+          }, {})
+        },
+        timestamp: Date.now()
+      };
+      
+      console.log("📈 Database stats:", stats);
+      return stats;
+    } catch (error) {
+      console.error("❌ getDatabaseStats error:", error);
+      throw error;
+    }
+  }
 }); 
