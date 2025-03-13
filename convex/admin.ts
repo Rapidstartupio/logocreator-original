@@ -5,29 +5,66 @@ import { v } from "convex/values";
 export const getAllUsers = query({
   handler: async (ctx) => {
     console.log("Fetching all users from userAnalytics...");
-    const users = await ctx.db
-      .query("userAnalytics")
-      .collect();
+    try {
+      const users = await ctx.db
+        .query("userAnalytics")
+        .collect();
 
-    // Get logo counts for each user
-    const usersWithLogoCounts = await Promise.all(
-      users.map(async (user) => {
-        const logoCount = await ctx.db
-          .query("logoHistory")
-          .withIndex("by_user")
-          .filter(q => q.eq("userId", user.userId))
-          .collect()
-          .then(logos => logos.length);
+      // Get logo counts for each user
+      const usersWithLogoCounts = await Promise.all(
+        users.map(async (user) => {
+          try {
+            // Make sure user has required fields
+            if (!user.userId) {
+              console.warn("Found user without userId:", user._id);
+              return {
+                ...user,
+                actualLogoCount: 0,
+                userId: "unknown",
+                email: user.email || "unknown",
+                totalLogosGenerated: user.totalLogosGenerated || 0,
+                lastActive: user.lastActive || 0,
+                lastCompanyName: user.lastCompanyName || "unknown",
+                lastBusinessType: user.lastBusinessType || "unknown"
+              };
+            }
 
-        return {
-          ...user,
-          actualLogoCount: logoCount
-        };
-      })
-    );
-    
-    console.log(`Found ${users.length} users in userAnalytics`);
-    return usersWithLogoCounts;
+            const logoCount = await ctx.db
+              .query("logoHistory")
+              .withIndex("by_user")
+              .filter(q => q.eq("userId", user.userId))
+              .collect()
+              .then(logos => logos.length)
+              .catch(err => {
+                console.error("Error fetching logo count for user:", user.userId, err);
+                return 0;
+              });
+
+            return {
+              ...user,
+              actualLogoCount: logoCount,
+              // Ensure all required fields have defaults
+              email: user.email || "unknown",
+              totalLogosGenerated: user.totalLogosGenerated || 0,
+              lastActive: user.lastActive || 0,
+              lastCompanyName: user.lastCompanyName || "unknown",
+              lastBusinessType: user.lastBusinessType || "unknown"
+            };
+          } catch (err) {
+            console.error("Error processing user:", user._id, err);
+            return null;
+          }
+        })
+      );
+      
+      // Filter out any null results from errors
+      const validUsers = usersWithLogoCounts.filter(user => user !== null);
+      console.log(`Found ${validUsers.length} valid users in userAnalytics`);
+      return validUsers;
+    } catch (err) {
+      console.error("Error in getAllUsers:", err);
+      return []; // Return empty array instead of crashing
+    }
   },
 });
 
