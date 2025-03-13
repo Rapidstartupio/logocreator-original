@@ -11,7 +11,6 @@ const generateSingleImage = async (client: Together, prompt: string) => {
       model: "black-forest-labs/FLUX.1.1-pro",
       width: 768,
       height: 768,
-      // steps: 4,
       // @ts-expect-error - this is not typed in the API
       response_format: "base64",
     });
@@ -19,28 +18,13 @@ const generateSingleImage = async (client: Together, prompt: string) => {
     return response.data[0].b64_json;
   } catch (error) {
     console.error('Error generating single image:', error);
-    // Add more detailed error information
     const errorMessage = error instanceof Error ? error.message : String(error);
-    
-    // Check for credit limit error
-    if (errorMessage.includes('Credit limit exceeded') || errorMessage.includes('402')) {
-      // Redirect to main endpoint by throwing a specific error
-      throw new Error('REDIRECT_TO_MAIN');
-    }
-    
     throw new Error(`Image generation failed: ${errorMessage}`);
   }
 };
 
 export async function POST(req: Request) {
   try {
-    // Log environment check
-    console.log('Environment check:', {
-      hasTogetherKey: Boolean(process.env.TOGETHER_API_KEY),
-      keyLength: process.env.TOGETHER_API_KEY?.length,
-      nodeEnv: process.env.NODE_ENV
-    });
-
     const json = await req.json();
     console.log('Request body:', {
       ...json,
@@ -116,45 +100,11 @@ Primary color is ${data.selectedPrimaryColor.toLowerCase()} and background color
       const image = await generateSingleImage(client, prompt);
       return Response.json([image], { status: 200 });
     } catch (error) {
-      if (error instanceof Error && error.message === 'REDIRECT_TO_MAIN') {
-        // Store the form data in local storage and redirect
-        return new Response(JSON.stringify({
-          redirect: true,
-          message: "Please sign in to continue generating logos.",
-          formData: {
-            companyName: data.companyName,
-            layout: data.selectedLayout,
-            style: data.selectedStyle,
-            primaryColor: data.selectedPrimaryColor,
-            backgroundColor: data.selectedBackgroundColor,
-            additionalInfo: data.additionalInfo
-          }
-        }), {
-          status: 303,
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-      }
-      throw error;
+      console.error('Error generating demo logo:', error);
+      return new Response('Failed to generate demo logo', { status: 500 });
     }
   } catch (error) {
     console.error('Demo API Error:', error);
-    
-    // If it's our redirect error, pass it through
-    if (error instanceof Error && error.message === 'REDIRECT_TO_MAIN') {
-      return new Response(JSON.stringify({
-        redirect: true,
-        message: "Please sign in to continue generating logos."
-      }), {
-        status: 303,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-    }
-    
-    // For all other errors
     return new Response('Failed to generate demo logo', { status: 500 });
   }
 }

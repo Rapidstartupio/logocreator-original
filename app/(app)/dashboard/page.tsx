@@ -119,7 +119,7 @@ export default function Page() {
     if (hasGeneratedBefore) {
       setIsFirstGeneration(false);
     }
-  }, []); // Remove generateLogo from dependencies
+  }, []);
 
   // Update the generateSingleLogo function to handle single image refresh
   async function generateSingleLogo(frameIndex: number) {
