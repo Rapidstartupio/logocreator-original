@@ -6,7 +6,7 @@ import { MutationCtx, QueryCtx } from "./_generated/server";
 async function checkIsAdmin(ctx: QueryCtx | MutationCtx) {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) {
-    throw new Error("Not authenticated");
+    throw new Error("Authentication required to access admin functions");
   }
   
   const user = await ctx.db
@@ -14,13 +14,18 @@ async function checkIsAdmin(ctx: QueryCtx | MutationCtx) {
     .withIndex("by_user", q => q.eq("userId", identity.subject))
     .first();
     
-  if (!user?.isAdmin) {
-    throw new Error("Not authorized - admin access required");
+  if (!user) {
+    throw new Error("User not found in database");
   }
+
+  if (!user.isAdmin) {
+    throw new Error("Admin privileges required to access this function");
+  }
+
   return user;
 }
 
-// Direct queries with no auth checks
+// Direct queries with auth checks
 export const getAllUsers = query({
   handler: async (ctx) => {
     // Check admin access first
@@ -75,7 +80,7 @@ export const getAllUsers = query({
       return validUsers;
     } catch (err) {
       console.error("Error in getAllUsers:", err);
-      throw err; // Throw the error instead of returning empty array
+      throw new Error("Failed to fetch users: " + (err instanceof Error ? err.message : String(err)));
     }
   },
 });
