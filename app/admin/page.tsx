@@ -14,11 +14,13 @@ import {
   TableRow,
 } from "../../components/ui/table";
 import { AdminTest } from "./admin-test";
+import { useAuth } from "@clerk/nextjs";
 
 export default function AdminDashboard() {
   const [selectedTab, setSelectedTab] = useState("overview");
+  const { isSignedIn } = useAuth();
   
-  // Simple queries without complex error handling
+  // Simple queries with error handling
   const users = useQuery(api.admin.getAllUsers);
   const recentLogos = useQuery(api.admin.getRecentLogos, { limit: 50 });
   
@@ -26,6 +28,38 @@ export default function AdminDashboard() {
     if (!timestamp) return "N/A";
     return new Date(timestamp).toLocaleString();
   };
+
+  // Show error if not signed in
+  if (!isSignedIn) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <Card className="bg-gray-900 border-gray-800">
+          <CardHeader>
+            <CardTitle className="text-red-500">Access Denied</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>Please sign in to access the admin dashboard.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show error if query failed (not admin)
+  if (users === undefined && recentLogos === undefined) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <Card className="bg-gray-900 border-gray-800">
+          <CardHeader>
+            <CardTitle className="text-red-500">Access Denied</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>You do not have admin privileges to access this dashboard.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black text-white">
