@@ -116,11 +116,10 @@ export default function Page() {
         setSelectedPrimaryColor(logoData.primaryColor);
         setSelectedBackgroundColor(logoData.backgroundColor);
         setAdditionalInfo(logoData.additionalInfo);
-        if (logoData.generatedLogoUrl) {
-          // Convert the data URL to base64
-          const base64Data = logoData.generatedLogoUrl.split(',')[1];
-          setGeneratedImages([base64Data]);
-        }
+        
+        // Instead of using the stored image, generate a new one with the main endpoint
+        generateLogo();
+        
         // Clear the pending data
         localStorage.removeItem('pendingLogoData');
       } catch (error) {
@@ -133,7 +132,7 @@ export default function Page() {
     if (hasGeneratedBefore) {
       setIsFirstGeneration(false);
     }
-  }, []);
+  }, [generateLogo]);
 
   // Update the generateLogo function to handle single image refresh
   async function generateSingleLogo(frameIndex: number) {
