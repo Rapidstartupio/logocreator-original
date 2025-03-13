@@ -1,12 +1,48 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
+// Test connection and auth status
+export const testConnection = query({
+  handler: async (ctx) => {
+    console.log("🔍 Testing Convex connection...");
+    try {
+      const identity = await ctx.auth.getUserIdentity();
+      console.log("📡 Connection test results:", {
+        connected: true,
+        hasIdentity: !!identity,
+        identityDetails: identity,
+        timestamp: new Date().toISOString()
+      });
+      return {
+        success: true,
+        identity,
+        timestamp: Date.now()
+      };
+    } catch (error) {
+      console.error("❌ Connection test failed:", error);
+      return {
+        success: false,
+        error: String(error),
+        timestamp: Date.now()
+      };
+    }
+  }
+});
+
 export const getAllUsers = query({
   handler: async (ctx) => {
-    return await ctx.db
-      .query("userAnalytics")
-      .withIndex("by_lastActive")
-      .collect();
+    console.log("📥 getAllUsers: Starting request...");
+    try {
+      const users = await ctx.db
+        .query("userAnalytics")
+        .withIndex("by_lastActive")
+        .collect();
+      console.log("📤 getAllUsers: Success", { userCount: users.length });
+      return users;
+    } catch (error) {
+      console.error("❌ getAllUsers: Error", error);
+      throw error;
+    }
   },
 });
 
@@ -14,12 +50,20 @@ export const getRecentLogos = query({
   args: {
     limit: v.optional(v.number()),
   },
-  handler: async (ctx) => {
-    return await ctx.db
-      .query("logoHistory")
-      .withIndex("by_timestamp")
-      .order("desc")
-      .take(50);
+  handler: async (ctx, args) => {
+    console.log("📥 getRecentLogos: Starting request...", { limit: args.limit });
+    try {
+      const logos = await ctx.db
+        .query("logoHistory")
+        .withIndex("by_timestamp")
+        .order("desc")
+        .take(50);
+      console.log("📤 getRecentLogos: Success", { logoCount: logos.length });
+      return logos;
+    } catch (error) {
+      console.error("❌ getRecentLogos: Error", error);
+      throw error;
+    }
   },
 });
 
@@ -214,14 +258,30 @@ export const getAllTableData = query({
 
 export const testAdminAccess = query({
   handler: async (ctx) => {
-    const users = await ctx.db.query("userAnalytics").collect();
-    const logos = await ctx.db.query("logoHistory").collect();
-    const recordCount = users.length + logos.length;
-    
-    return {
-      success: true,
-      recordCount,
-      adminKeyPresent: true
-    };
+    console.log("🔑 testAdminAccess: Starting admin access test...");
+    try {
+      const identity = await ctx.auth.getUserIdentity();
+      console.log("👤 User identity:", identity);
+
+      const users = await ctx.db.query("userAnalytics").collect();
+      console.log("📊 Users count:", users.length);
+
+      const logos = await ctx.db.query("logoHistory").collect();
+      console.log("🎨 Logos count:", logos.length);
+
+      const result = {
+        success: true,
+        userIdentity: identity,
+        recordCount: users.length + logos.length,
+        adminKeyPresent: true,
+        timestamp: Date.now()
+      };
+
+      console.log("✅ testAdminAccess: Success", result);
+      return result;
+    } catch (error) {
+      console.error("❌ testAdminAccess: Error", error);
+      throw error;
+    }
   },
 }); 
