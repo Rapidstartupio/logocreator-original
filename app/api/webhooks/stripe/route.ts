@@ -58,11 +58,8 @@ export async function POST(req: Request) {
       // Add new credits
       await redis.set(creditsKey, (remainingCredits + creditsToAdd).toString());
 
-      // Get Clerk client
-      const clerk = await clerkClient();
-
       // Update the user's credits in Clerk
-      await clerk.users.updateUserMetadata(userId, {
+      await clerkClient.users.updateUserMetadata(userId, {
         unsafeMetadata: {
           remaining: remainingCredits + creditsToAdd,
           hasApiKey: false,
