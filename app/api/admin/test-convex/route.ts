@@ -1,5 +1,7 @@
-import { ConvexHttpClient } from "convex/browser";
+import { ConvexClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
+
+const CONVEX_ADMIN_KEY = process.env.CONVEX_ADMIN_KEY || process.env.CONVEX_DEPLOYMENT_KEY;
 
 export async function POST() {
   if (!process.env.NEXT_PUBLIC_CONVEX_URL) {
@@ -9,11 +11,19 @@ export async function POST() {
     }, { status: 500 });
   }
 
+  if (!CONVEX_ADMIN_KEY) {
+    return Response.json({
+      success: false,
+      error: "Missing Convex admin key"
+    }, { status: 500 });
+  }
+
   try {
-    const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
+    const client = new ConvexClient(process.env.NEXT_PUBLIC_CONVEX_URL);
+    client.setAuth(() => Promise.resolve(CONVEX_ADMIN_KEY));
     
     // Try to fetch some basic data
-    const users = await client.query(api.admin.getAllUsers);
+    const users = await client.query(api.admin.getAllUsers, {});
     const logos = await client.query(api.admin.getRecentLogos, { limit: 10 });
     
     return Response.json({
