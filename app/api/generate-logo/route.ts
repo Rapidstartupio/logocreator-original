@@ -7,6 +7,15 @@ import { z } from "zod";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
 
+interface TogetherError extends Error {
+  status?: number;
+  response?: {
+    data?: {
+      error?: string;
+    };
+  };
+}
+
 export async function POST(req: Request) {
   // Add detailed environment logging at the start
   const envKey = process.env.TOGETHER_API_KEY;
@@ -72,28 +81,41 @@ export async function POST(req: Request) {
 
   // Add rate limiting if Upstash API keys are set & no BYOK, otherwise skip
   if (process.env.UPSTASH_REDIS_REST_URL && !data.userAPIKey) {
-    const redis = new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN || "",
-    });
+    try {
+      // Validate Redis URL format
+      const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+      if (!redisUrl.startsWith('https://') || !redisUrl.includes('.upstash.io')) {
+        console.error('Invalid Redis URL format:', redisUrl);
+        throw new Error('Invalid Redis configuration');
+      }
 
-    const key = `rate_limit:${userId}`;
-    const limit = 50;
-    const window = 24 * 60 * 60; // 24 hours in seconds
+      const redis = new Redis({
+        url: redisUrl,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN || "",
+      });
 
-    const count = await redis.incr(key);
-    if (count === 1) {
-      await redis.expire(key, window);
-    }
+      const key = `rate_limit:${userId}`;
+      const limit = 50;
+      const window = 24 * 60 * 60; // 24 hours in seconds
 
-    if (count > limit) {
-      return new Response(
-        "You have reached your daily limit. Please try again tomorrow.",
-        {
-          status: 429,
-          headers: { "Content-Type": "text/plain" },
-        }
-      );
+      const count = await redis.incr(key);
+      if (count === 1) {
+        await redis.expire(key, window);
+      }
+
+      if (count > limit) {
+        return new Response(
+          "You have reached your daily limit. Please try again tomorrow.",
+          {
+            status: 429,
+            headers: { "Content-Type": "text/plain" },
+          }
+        );
+      }
+    } catch (error) {
+      console.error('Redis error:', error);
+      // Continue without rate limiting if Redis fails
+      console.warn('Continuing without rate limiting due to Redis error');
     }
   }
 
@@ -163,18 +185,30 @@ Primary color is ${data.selectedPrimaryColor.toLowerCase()} and background color
 
   async function generateSingleImage() {
     try {
+      console.log('Starting image generation with Together API');
       const response = await client.images.create({
         prompt,
         model: "black-forest-labs/FLUX.1.1-pro",
         width: 768,
         height: 768,
-
         // @ts-expect-error - this is not typed in the API
         response_format: "base64",
       });
+      console.log('Successfully generated image');
       return response.data[0].b64_json;
     } catch (error) {
-      console.error('Error generating single image:', error);
+      const togetherError = error as TogetherError;
+      console.error('Error generating single image:', {
+        message: togetherError.message,
+        status: togetherError.status,
+        response: togetherError.response?.data
+      });
+      
+      // Handle credit limit specifically
+      if (togetherError.status === 402 || (togetherError.response?.data?.error || '').includes('credit')) {
+        throw new Error('Credit limit reached. Please check your API key balance.');
+      }
+      
       throw error;
     }
   }
@@ -201,9 +235,15 @@ Primary color is ${data.selectedPrimaryColor.toLowerCase()} and background color
     return Response.json(images, { status: 200 });
   } catch (error) {
     console.error('Error generating images:', error);
+    
+    // Return appropriate error message based on error type
+    const err = error as Error;
+    const status = err.message?.includes('Credit limit') ? 402 : 500;
+    const message = err.message || 'Failed to generate logo';
+    
     return Response.json(
-      { error: 'Failed to generate logo' },
-      { status: 500 }
+      { error: message },
+      { status }
     );
   }
 }
