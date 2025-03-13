@@ -354,7 +354,9 @@ function AdminDashboardContent() {
         <div className="flex gap-2 items-center mb-8">
           <div>Logged in as: {user?.emailAddresses?.[0]?.emailAddress}</div>
           {accessError ? (
-            <div className="text-amber-500">⚠️ Admin connection issues - Please run &ldquo;npx convex deploy&rdquo;</div>
+            <div className="text-amber-500">
+              ⚠️ Admin access denied - Please ensure you are logged in as admin@admin.com
+            </div>
           ) : testAccess ? (
             <div className="text-green-500">✓ Connected to Convex as admin - Found {testAccess.recordCount} records</div>
           ) : (

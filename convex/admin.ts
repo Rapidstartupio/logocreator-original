@@ -2,19 +2,24 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { QueryCtx, MutationCtx } from "./_generated/server";
 
-// Helper function for admin checks - TEMPORARY PERMISSIVE VERSION FOR DEBUGGING
+// Helper function for admin checks
 const checkAdmin = async (ctx: QueryCtx | MutationCtx) => {
   const identity = await ctx.auth.getUserIdentity();
-  
-  // Log the entire identity object for debugging
-  console.log("DEBUG - Full identity object:", JSON.stringify(identity));
   
   if (!identity) {
     throw new Error("No user identity found");
   }
 
-  // TEMPORARY: Allow any authenticated user for debugging
-  console.log("TEMPORARY: Allowing any authenticated user for debugging");
+  // Check if user has admin email
+  const isAdminEmail = identity.email === "admin@admin.com";
+  
+  // Check if user has admin role in tokenIdentifier
+  const hasAdminRole = identity.tokenIdentifier.includes("role:admin");
+
+  if (!isAdminEmail && !hasAdminRole) {
+    throw new Error("Unauthorized access to admin functions");
+  }
+
   return identity;
 };
 
@@ -43,13 +48,29 @@ export const getRecentLogos = query({
 });
 
 export const getDailyStats = query({
-  handler: async () => {
-    // Return dummy stats for testing
-    console.log("BYPASS MODE: Returning dummy stats");
+  handler: async (ctx) => {
+    await checkAdmin(ctx);
+    
+    const oneDayAgo = Date.now();
+    
+    // Get active users in last 24h
+    const activeUsers = await ctx.db
+      .query("userAnalytics")
+      .withIndex("by_lastActive")
+      .filter(q => q.gte(q.field("lastActive"), oneDayAgo - 24 * 60 * 60 * 1000))
+      .collect();
+
+    // Get logos generated in last 24h
+    const recentLogos = await ctx.db
+      .query("logoHistory")
+      .withIndex("by_timestamp")
+      .filter(q => q.gte(q.field("timestamp"), oneDayAgo - 24 * 60 * 60 * 1000))
+      .collect();
+
     return {
-      activeUsers: 2,
-      totalLogos: 15,
-      timestamp: Date.now()
+      activeUsers: activeUsers.length,
+      totalLogos: recentLogos.length,
+      timestamp: oneDayAgo
     };
   },
 });
@@ -208,47 +229,56 @@ export const createSampleLogo = mutation({
 
 // New function to get all tables in the database
 export const getAllTables = query({
-  handler: async () => {
-    // Return dummy tables for testing
-    console.log("BYPASS MODE: Returning dummy tables");
+  handler: async (ctx) => {
+    await checkAdmin(ctx);
     return ["logoHistory", "userAnalytics"];
   },
 });
 
-// Simplified function to get all data from a specific table
+// Function to get all data from a specific table
 export const getAllTableData = query({
   args: {
     tableName: v.string(),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    // Use the ctx parameter to avoid the linter error
-    if (ctx) {
-      // This code never runs, just prevents the linter error
+    await checkAdmin(ctx);
+    
+    const limit = args.limit || 100;
+    
+    if (args.tableName === "logoHistory") {
+      return await ctx.db
+        .query("logoHistory")
+        .withIndex("by_timestamp")
+        .order("desc")
+        .take(limit);
+    } else if (args.tableName === "userAnalytics") {
+      return await ctx.db
+        .query("userAnalytics")
+        .withIndex("by_lastActive")
+        .order("desc")
+        .take(limit);
     }
     
-    // Return dummy table data for testing
-    console.log("BYPASS MODE: Returning dummy table data for", args.tableName);
-    return [
-      {
-        _id: "dummy_record_1" as unknown,
-        _creationTime: Date.now(),
-        name: "Sample Record",
-        description: "This is a sample record for testing"
-      }
-    ];
+    throw new Error(`Unknown table: ${args.tableName}`);
   },
 });
 
 export const testAdminAccess = query({
-  handler: async () => {
-    // Return success for testing
-    console.log("BYPASS MODE: Simulating successful admin access");
+  handler: async (ctx) => {
+    await checkAdmin(ctx);
+    
+    // Count total records
+    const users = await ctx.db.query("userAnalytics").collect();
+    const logos = await ctx.db.query("logoHistory").collect();
+    const recordCount = users.length + logos.length;
+    
+    const identity = await ctx.auth.getUserIdentity();
     
     return {
       success: true,
-      userIdentity: { email: "admin@admin.com" },
-      recordCount: 5,
+      userIdentity: { email: identity?.email },
+      recordCount,
       adminKeyPresent: true
     };
   },
