@@ -286,6 +286,9 @@ export default function Page() {
       <Header className="block md:hidden" />
 
       <div className="flex w-full flex-col md:flex-row">
+        <div className="fixed top-0 left-0 right-0 z-50 bg-yellow-500/90 p-3 text-center text-sm font-medium text-black backdrop-blur-sm">
+          We&apos;re experiencing high demand and are spinning up more servers. Service will be restored within the next hour. We apologize for the inconvenience.
+        </div>
         <div className="relative flex h-[calc(100vh-64px)] w-full flex-col bg-[#2C2C2C] text-[#F3F3F3] md:h-screen md:max-w-sm md:overflow-y-auto">
           <form
             className="flex h-full w-full flex-col"
