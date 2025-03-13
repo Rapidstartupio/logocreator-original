@@ -105,36 +105,7 @@ export default function Page() {
   const mutation = useMutation(api.logoHistory.save);
 
   useEffect(() => {
-    // Check for pending logo data
-    const pendingData = localStorage.getItem('pendingLogoData');
-    if (pendingData) {
-      try {
-        const logoData = JSON.parse(pendingData);
-        // Set the form data with the pending logo
-        setCompanyName(logoData.companyName);
-        setSelectedLayout(logoData.layout);
-        setSelectedStyle(logoData.style);
-        setSelectedPrimaryColor(logoData.primaryColor);
-        setSelectedBackgroundColor(logoData.backgroundColor);
-        setAdditionalInfo(logoData.additionalInfo);
-        
-        // Instead of using the stored image, generate a new one with the main endpoint
-        generateLogo();
-        
-        // Clear the pending data
-        localStorage.removeItem('pendingLogoData');
-      } catch (error) {
-        console.error('Error processing pending logo data:', error);
-      }
-    }
-
-    // Check if user has generated logos before
-    const hasGeneratedBefore = localStorage.getItem('hasGeneratedLogo');
-    if (hasGeneratedBefore) {
-      setIsFirstGeneration(false);
-    }
-
-    // Initialize demo attempts from localStorage
+    // Initialize demo attempts if not already set
     const attempts = localStorage.getItem('demoAttempts');
     if (attempts === null) {
       localStorage.setItem('demoAttempts', '5');
@@ -142,7 +113,13 @@ export default function Page() {
     } else {
       setDemoAttemptsLeft(parseInt(attempts));
     }
-  }, [generateLogo]);
+
+    // Check if user has generated logos before
+    const hasGeneratedBefore = localStorage.getItem('hasGeneratedLogo');
+    if (hasGeneratedBefore) {
+      setIsFirstGeneration(false);
+    }
+  }, []); // Remove generateLogo from dependencies
 
   // Update the generateSingleLogo function to handle single image refresh
   async function generateSingleLogo(frameIndex: number) {
@@ -159,7 +136,6 @@ export default function Page() {
 
       try {
         setIsLoading(true);
-        console.log('Making request to demo endpoint for regeneration: /api/demo/generate-logo');
         const res = await fetch('/api/demo/generate-logo', {
           method: "POST",
           headers: {
@@ -175,24 +151,6 @@ export default function Page() {
             numberOfImages: 1,
           }),
         });
-
-        console.log('Demo Regenerate Response:', {
-          status: res.status,
-          statusText: res.statusText,
-          headers: Object.fromEntries(res.headers.entries())
-        });
-
-        if (res.status === 303) {
-          const data = await res.json();
-          // Store form data for after sign in
-          localStorage.setItem('pendingLogoData', JSON.stringify(data.formData));
-          
-          toast({
-            title: "Sign in required",
-            description: data.message || "Please sign in to continue generating logos.",
-          });
-          return;
-        }
 
         if (res.ok) {
           const [newImage] = await res.json();
@@ -215,11 +173,6 @@ export default function Page() {
           }
         } else {
           const errorText = await res.text();
-          console.error('Demo API Error:', {
-            status: res.status,
-            statusText: res.statusText,
-            body: errorText,
-          });
           toast({
             variant: "destructive",
             title: "Error regenerating logo",
@@ -320,7 +273,6 @@ export default function Page() {
 
       try {
         setIsLoading(true);
-        console.log('Making request to demo endpoint: /api/demo/generate-logo');
         const res = await fetch('/api/demo/generate-logo', {
           method: "POST",
           headers: {
@@ -336,24 +288,6 @@ export default function Page() {
             numberOfImages: parseInt(numberOfImages),
           }),
         });
-
-        console.log('Demo Response:', {
-          status: res.status,
-          statusText: res.statusText,
-          headers: Object.fromEntries(res.headers.entries())
-        });
-
-        if (res.status === 303) {
-          const data = await res.json();
-          // Store form data for after sign in
-          localStorage.setItem('pendingLogoData', JSON.stringify(data.formData));
-          
-          toast({
-            title: "Sign in required",
-            description: data.message || "Please sign in to continue generating logos.",
-          });
-          return;
-        }
 
         if (res.ok) {
           const images = await res.json();
@@ -375,11 +309,6 @@ export default function Page() {
           }
         } else {
           const errorText = await res.text();
-          console.error('Demo API Error:', {
-            status: res.status,
-            statusText: res.statusText,
-            body: errorText,
-          });
           toast({
             variant: "destructive",
             title: "Error generating logo",
