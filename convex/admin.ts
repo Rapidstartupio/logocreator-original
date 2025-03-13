@@ -17,13 +17,14 @@ export const getRecentLogos = query({
   args: {
     limit: v.optional(v.number()),
   },
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
     console.log("Fetching logos from logoHistory...");
+    const limit = args.limit || 50; // Default to 50 if not provided
     const logos = await ctx.db
       .query("logoHistory")
       .withIndex("by_timestamp")
       .order("desc")
-      .take(50);
+      .take(limit);
     console.log(`Found ${logos.length} logos in logoHistory`);
     return logos;
   },
