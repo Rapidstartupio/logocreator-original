@@ -1,23 +1,8 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { QueryCtx, MutationCtx } from "./_generated/server";
-
-// Helper function for admin checks - now just logs auth info
-const logAuth = async (ctx: QueryCtx | MutationCtx, source: string) => {
-  const identity = await ctx.auth.getUserIdentity();
-  console.log(`Auth check from ${source}:`, {
-    hasIdentity: !!identity,
-    email: identity?.email,
-    tokenIdentifier: identity?.tokenIdentifier,
-    subject: identity?.subject,
-    fullIdentity: identity
-  });
-  return identity;
-};
 
 export const getAllUsers = query({
   handler: async (ctx) => {
-    await logAuth(ctx, "getAllUsers");
     return await ctx.db
       .query("userAnalytics")
       .withIndex("by_lastActive")
@@ -30,7 +15,6 @@ export const getRecentLogos = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx) => {
-    await logAuth(ctx, "getRecentLogos");
     return await ctx.db
       .query("logoHistory")
       .withIndex("by_timestamp")
@@ -41,8 +25,6 @@ export const getRecentLogos = query({
 
 export const getDailyStats = query({
   handler: async (ctx) => {
-    await logAuth(ctx, "getDailyStats");
-    
     const oneDayAgo = Date.now();
     
     // Get active users in last 24h
@@ -79,8 +61,6 @@ export const syncClerkUsers = mutation({
     adminKey: v.string(),
   },
   handler: async (ctx, args) => {
-    await logAuth(ctx, "syncClerkUsers");
-
     try {
       let userCount = 0;
       for (const userData of args.usersData) {
@@ -114,8 +94,6 @@ export const syncClerkUsers = mutation({
 
 export const getUsersWithLogoData = query({
   handler: async (ctx) => {
-    await logAuth(ctx, "getUsersWithLogoData");
-    
     // Get all users with their analytics
     const users = await ctx.db
       .query("userAnalytics")
@@ -144,7 +122,6 @@ export const getUsersWithLogoData = query({
   },
 });
 
-// New function to add sample logo data
 export const createSampleLogo = mutation({
   args: {
     userId: v.string(),
@@ -152,24 +129,19 @@ export const createSampleLogo = mutation({
     businessType: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await logAuth(ctx, "createSampleLogo");
-
     const styles = ["modern", "minimal", "classic", "bold", "playful"];
     const layouts = ["centered", "minimal", "dynamic", "balanced", "geometric"];
     const colors = ["#4B5563", "#1E40AF", "#047857", "#B91C1C", "#6D28D9"];
     const bgColors = ["#F9FAFB", "#EFF6FF", "#ECFDF5", "#FEF2F2", "#F5F3FF"];
 
-    // Create a simple base64 placeholder image
     const createPlaceholderImage = () => {
-      // This is a 1x1 transparent pixel in base64
       return "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
     };
 
-    // Create multiple sample logos with different timestamps
     const now = Date.now();
     const oneDay = 24 * 60 * 60 * 1000;
     const logoPromises = Array.from({ length: 5 }).map(async (_, index) => {
-      const timestamp = now - (index * oneDay); // Spread over last 5 days
+      const timestamp = now - (index * oneDay);
       const style = styles[index % styles.length];
       const layout = layouts[index % layouts.length];
       const color = colors[index % colors.length];
@@ -183,17 +155,13 @@ export const createSampleLogo = mutation({
         primaryColor: color,
         backgroundColor: bgColor,
         additionalInfo: `Sample logo ${index + 1} created for testing`,
-        images: [
-          createPlaceholderImage(),
-          createPlaceholderImage(),
-        ],
+        images: [createPlaceholderImage(), createPlaceholderImage()],
         timestamp
       });
     });
 
     const logoIds = await Promise.all(logoPromises);
 
-    // Update user analytics
     const existingAnalytics = await ctx.db
       .query("userAnalytics")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
@@ -212,23 +180,18 @@ export const createSampleLogo = mutation({
   },
 });
 
-// New function to get all tables in the database
 export const getAllTables = query({
-  handler: async (ctx) => {
-    await logAuth(ctx, "getAllTables");
+  handler: async () => {
     return ["logoHistory", "userAnalytics"];
   },
 });
 
-// Function to get all data from a specific table
 export const getAllTableData = query({
   args: {
     tableName: v.string(),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    await logAuth(ctx, "getAllTableData");
-    
     const limit = args.limit || 100;
     
     if (args.tableName === "logoHistory") {
@@ -251,16 +214,12 @@ export const getAllTableData = query({
 
 export const testAdminAccess = query({
   handler: async (ctx) => {
-    const identity = await logAuth(ctx, "testAdminAccess");
-    
-    // Count total records
     const users = await ctx.db.query("userAnalytics").collect();
     const logos = await ctx.db.query("logoHistory").collect();
     const recordCount = users.length + logos.length;
     
     return {
       success: true,
-      userIdentity: { email: identity?.email },
       recordCount,
       adminKeyPresent: true
     };
