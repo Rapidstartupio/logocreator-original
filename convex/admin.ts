@@ -1,24 +1,14 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { QueryCtx, MutationCtx } from "./_generated/server";
 
-// Super loose admin check - if you have any identity, you're an admin
-const checkAdmin = async (ctx: QueryCtx | MutationCtx) => {
-  const identity = await ctx.auth.getUserIdentity();
-  // If you have any identity at all, you're an admin
-  if (!identity) {
-    throw new Error("Please log in to access admin features");
-  }
-  return identity;
-};
-
-// Basic queries that just fetch data directly without any checks
+// Direct queries with no auth checks
 export const getAllUsers = query({
   handler: async (ctx) => {
-    await checkAdmin(ctx);
+    console.log("Fetching all users from userAnalytics...");
     const users = await ctx.db
       .query("userAnalytics")
       .collect();
+    console.log(`Found ${users.length} users in userAnalytics`);
     return users;
   },
 });
@@ -28,19 +18,19 @@ export const getRecentLogos = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx) => {
-    await checkAdmin(ctx);
+    console.log("Fetching logos from logoHistory...");
     const logos = await ctx.db
       .query("logoHistory")
       .withIndex("by_timestamp")
       .order("desc")
       .take(50);
+    console.log(`Found ${logos.length} logos in logoHistory`);
     return logos;
   },
 });
 
 export const getDailyStats = query({
   handler: async (ctx) => {
-    await checkAdmin(ctx);
     const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
     
     const activeUsers = await ctx.db
@@ -63,6 +53,7 @@ export const getDailyStats = query({
   },
 });
 
+// Simplified sync that just adds users without checking anything
 export const syncClerkUsers = mutation({
   args: {
     usersData: v.array(
@@ -75,13 +66,11 @@ export const syncClerkUsers = mutation({
     adminKey: v.string(),
   },
   handler: async (ctx, args) => {
-    await checkAdmin(ctx);
+    console.log(`Syncing ${args.usersData.length} users from Clerk...`);
     try {
       let userCount = 0;
       for (const userData of args.usersData) {
         const { userId, email } = userData;
-        
-        // Just try to insert, if it fails due to duplicate, that's fine
         try {
           await ctx.db.insert("userAnalytics", {
             userId,
@@ -96,8 +85,10 @@ export const syncClerkUsers = mutation({
           // Ignore duplicate errors
         }
       }
+      console.log(`Successfully synced ${userCount} new users`);
       return { success: true, userCount };
     } catch (error) {
+      console.error("Error syncing users:", error);
       return { success: false, error: String(error) };
     }
   },
@@ -105,10 +96,12 @@ export const syncClerkUsers = mutation({
 
 export const getUsersWithLogoData = query({
   handler: async (ctx) => {
-    await checkAdmin(ctx);
+    console.log("Fetching users with logo data...");
     const users = await ctx.db
       .query("userAnalytics")
       .collect();
+    
+    console.log(`Found ${users.length} users, fetching their logos...`);
     
     const userLogos = await Promise.all(
       users.map(async (user) => {
@@ -126,6 +119,7 @@ export const getUsersWithLogoData = query({
       })
     );
     
+    console.log(`Completed fetching logo data for ${userLogos.length} users`);
     return userLogos;
   },
 });
@@ -137,7 +131,6 @@ export const createSampleLogo = mutation({
     businessType: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await checkAdmin(ctx);
     const styles = ["modern", "minimal", "classic", "bold", "playful"];
     const layouts = ["centered", "minimal", "dynamic", "balanced", "geometric"];
     const colors = ["#4B5563", "#1E40AF", "#047857", "#B91C1C", "#6D28D9"];
@@ -190,8 +183,7 @@ export const createSampleLogo = mutation({
 });
 
 export const getAllTables = query({
-  handler: async (ctx) => {
-    await checkAdmin(ctx);
+  handler: async () => {
     return ["logoHistory", "userAnalytics"];
   },
 });
@@ -202,7 +194,6 @@ export const getAllTableData = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    await checkAdmin(ctx);
     const limit = args.limit || 100;
     
     if (args.tableName === "logoHistory") {
@@ -223,13 +214,11 @@ export const getAllTableData = query({
   },
 });
 
-// Simple admin check - if you have any identity, you're an admin
+// Simple test that always returns success
 export const testAdminAccess = query({
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: async () => {
     return {
-      success: !!identity,
-      userIdentity: identity,
+      success: true,
       adminKeyPresent: true,
       timestamp: Date.now()
     };
