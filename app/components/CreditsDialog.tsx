@@ -42,7 +42,7 @@ export function CreditsDialog() {
     <Dialog>
       <DialogTrigger asChild>
         <button className="text-sm text-white hover:text-gray-300">
-          {String(user?.unsafeMetadata?.remaining || 3)} credits
+          {String(user?.unsafeMetadata?.remaining !== undefined ? user.unsafeMetadata.remaining : 3)} credits
         </button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
