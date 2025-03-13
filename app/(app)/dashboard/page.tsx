@@ -228,6 +228,7 @@ export default function Page() {
       }
 
       try {
+        setIsLoading(true);
         console.log('Making request to demo endpoint: /api/demo/generate-logo');
         const res = await fetch('/api/demo/generate-logo', {
           method: "POST",
@@ -272,9 +273,12 @@ export default function Page() {
           localStorage.setItem('demoAttempts', remainingAttempts.toString());
           setDemoAttemptsLeft(remainingAttempts);
           
+          // Mark that user has generated a logo
+          localStorage.setItem('hasGeneratedLogo', 'true');
+          
           if (remainingAttempts <= 2) {
             toast({
-              title: `${remainingAttempts} demo attempts left`,
+              title: `${remainingAttempts} demo ${remainingAttempts === 1 ? 'attempt' : 'attempts'} left`,
               description: "Sign in to get more credits and continue generating logos!",
             });
           }
@@ -298,6 +302,8 @@ export default function Page() {
           title: "Error",
           description: "Failed to connect to the server",
         });
+      } finally {
+        setIsLoading(false);
       }
       return;
     }
@@ -670,23 +676,58 @@ export default function Page() {
                         />
 
                         <div className="absolute -right-12 top-0 flex flex-col gap-2">
-                          <Button size="icon" variant="secondary" asChild>
-                            <a
-                              href={`data:image/png;base64,${generatedImages[selectedImageIndex]}`}
-                              download="logo.png"
-                            >
-                              <DownloadIcon />
-                            </a>
-                          </Button>
-                          <Button 
-                            size="icon" 
-                            onClick={() => generateSingleLogo(selectedImageIndex)} 
-                            variant="secondary"
-                          >
-                            <Spinner loading={isLoading}>
-                              <RefreshCwIcon />
-                            </Spinner>
-                          </Button>
+                          {isSignedIn ? (
+                            <>
+                              <Button size="icon" variant="secondary" asChild>
+                                <a
+                                  href={`data:image/png;base64,${generatedImages[selectedImageIndex]}`}
+                                  download="logo.png"
+                                >
+                                  <DownloadIcon />
+                                </a>
+                              </Button>
+                              <Button 
+                                size="icon" 
+                                onClick={() => generateSingleLogo(selectedImageIndex)} 
+                                variant="secondary"
+                              >
+                                <Spinner loading={isLoading}>
+                                  <RefreshCwIcon />
+                                </Spinner>
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <SignInButton mode="modal">
+                                <Button 
+                                  size="icon" 
+                                  variant="secondary"
+                                  onClick={() => {
+                                    toast({
+                                      title: "Sign in required",
+                                      description: "Create a free account to download your logos!",
+                                    });
+                                  }}
+                                >
+                                  <DownloadIcon />
+                                </Button>
+                              </SignInButton>
+                              <SignInButton mode="modal">
+                                <Button 
+                                  size="icon" 
+                                  variant="secondary"
+                                  onClick={() => {
+                                    toast({
+                                      title: "Sign in required",
+                                      description: "Create a free account to regenerate logos!",
+                                    });
+                                  }}
+                                >
+                                  <RefreshCwIcon />
+                                </Button>
+                              </SignInButton>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
