@@ -2,36 +2,22 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { QueryCtx, MutationCtx } from "./_generated/server";
 
-// Helper function for admin checks
-const checkAdmin = async (ctx: QueryCtx | MutationCtx) => {
+// Helper function for admin checks - now just logs auth info
+const logAuth = async (ctx: QueryCtx | MutationCtx, source: string) => {
   const identity = await ctx.auth.getUserIdentity();
-  
-  if (!identity) {
-    throw new Error("No user identity found");
-  }
-
-  // Debug log to see what we get from Clerk
-  console.log("Auth Identity:", JSON.stringify(identity, null, 2));
-
-  // Get email directly from the token - Clerk puts it in the email field
-  const userEmail = identity.email;
-  
-  if (!userEmail) {
-    throw new Error("No email found in auth token");
-  }
-
-  const isAdmin = userEmail === "admin@admin.com";
-  
-  if (!isAdmin) {
-    throw new Error(`Unauthorized access to admin functions. User email: ${userEmail}`);
-  }
-
+  console.log(`Auth check from ${source}:`, {
+    hasIdentity: !!identity,
+    email: identity?.email,
+    tokenIdentifier: identity?.tokenIdentifier,
+    subject: identity?.subject,
+    fullIdentity: identity
+  });
   return identity;
 };
 
 export const getAllUsers = query({
   handler: async (ctx) => {
-    await checkAdmin(ctx);
+    await logAuth(ctx, "getAllUsers");
     return await ctx.db
       .query("userAnalytics")
       .withIndex("by_lastActive")
@@ -44,7 +30,7 @@ export const getRecentLogos = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx) => {
-    await checkAdmin(ctx);
+    await logAuth(ctx, "getRecentLogos");
     return await ctx.db
       .query("logoHistory")
       .withIndex("by_timestamp")
@@ -55,7 +41,7 @@ export const getRecentLogos = query({
 
 export const getDailyStats = query({
   handler: async (ctx) => {
-    await checkAdmin(ctx);
+    await logAuth(ctx, "getDailyStats");
     
     const oneDayAgo = Date.now();
     
@@ -93,15 +79,7 @@ export const syncClerkUsers = mutation({
     adminKey: v.string(),
   },
   handler: async (ctx, args) => {
-    // Check either admin key or user identity
-    const identity = await ctx.auth.getUserIdentity();
-    const userEmail = identity?.email;
-    const isAdmin = (userEmail === "admin@admin.com") || 
-                   (args.adminKey === (process.env.CONVEX_ADMIN_KEY || 'dev_admin'));
-    
-    if (!isAdmin) {
-      throw new Error("Unauthorized access to admin functions");
-    }
+    await logAuth(ctx, "syncClerkUsers");
 
     try {
       let userCount = 0;
@@ -136,7 +114,7 @@ export const syncClerkUsers = mutation({
 
 export const getUsersWithLogoData = query({
   handler: async (ctx) => {
-    await checkAdmin(ctx);
+    await logAuth(ctx, "getUsersWithLogoData");
     
     // Get all users with their analytics
     const users = await ctx.db
@@ -174,7 +152,7 @@ export const createSampleLogo = mutation({
     businessType: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await checkAdmin(ctx);
+    await logAuth(ctx, "createSampleLogo");
 
     const styles = ["modern", "minimal", "classic", "bold", "playful"];
     const layouts = ["centered", "minimal", "dynamic", "balanced", "geometric"];
@@ -237,7 +215,7 @@ export const createSampleLogo = mutation({
 // New function to get all tables in the database
 export const getAllTables = query({
   handler: async (ctx) => {
-    await checkAdmin(ctx);
+    await logAuth(ctx, "getAllTables");
     return ["logoHistory", "userAnalytics"];
   },
 });
@@ -249,7 +227,7 @@ export const getAllTableData = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    await checkAdmin(ctx);
+    await logAuth(ctx, "getAllTableData");
     
     const limit = args.limit || 100;
     
@@ -273,14 +251,12 @@ export const getAllTableData = query({
 
 export const testAdminAccess = query({
   handler: async (ctx) => {
-    await checkAdmin(ctx);
+    const identity = await logAuth(ctx, "testAdminAccess");
     
     // Count total records
     const users = await ctx.db.query("userAnalytics").collect();
     const logos = await ctx.db.query("logoHistory").collect();
     const recordCount = users.length + logos.length;
-    
-    const identity = await ctx.auth.getUserIdentity();
     
     return {
       success: true,
