@@ -1,9 +1,21 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { QueryCtx, MutationCtx } from "./_generated/server";
+
+// Super loose admin check - if you have any identity, you're an admin
+const checkAdmin = async (ctx: QueryCtx | MutationCtx) => {
+  const identity = await ctx.auth.getUserIdentity();
+  // If you have any identity at all, you're an admin
+  if (!identity) {
+    throw new Error("Please log in to access admin features");
+  }
+  return identity;
+};
 
 // Basic queries that just fetch data directly without any checks
 export const getAllUsers = query({
   handler: async (ctx) => {
+    await checkAdmin(ctx);
     const users = await ctx.db
       .query("userAnalytics")
       .collect();
@@ -16,6 +28,7 @@ export const getRecentLogos = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx) => {
+    await checkAdmin(ctx);
     const logos = await ctx.db
       .query("logoHistory")
       .withIndex("by_timestamp")
@@ -27,6 +40,7 @@ export const getRecentLogos = query({
 
 export const getDailyStats = query({
   handler: async (ctx) => {
+    await checkAdmin(ctx);
     const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
     
     const activeUsers = await ctx.db
@@ -61,6 +75,7 @@ export const syncClerkUsers = mutation({
     adminKey: v.string(),
   },
   handler: async (ctx, args) => {
+    await checkAdmin(ctx);
     try {
       let userCount = 0;
       for (const userData of args.usersData) {
@@ -90,6 +105,7 @@ export const syncClerkUsers = mutation({
 
 export const getUsersWithLogoData = query({
   handler: async (ctx) => {
+    await checkAdmin(ctx);
     const users = await ctx.db
       .query("userAnalytics")
       .collect();
@@ -121,6 +137,7 @@ export const createSampleLogo = mutation({
     businessType: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await checkAdmin(ctx);
     const styles = ["modern", "minimal", "classic", "bold", "playful"];
     const layouts = ["centered", "minimal", "dynamic", "balanced", "geometric"];
     const colors = ["#4B5563", "#1E40AF", "#047857", "#B91C1C", "#6D28D9"];
@@ -173,7 +190,8 @@ export const createSampleLogo = mutation({
 });
 
 export const getAllTables = query({
-  handler: async () => {
+  handler: async (ctx) => {
+    await checkAdmin(ctx);
     return ["logoHistory", "userAnalytics"];
   },
 });
@@ -184,6 +202,7 @@ export const getAllTableData = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await checkAdmin(ctx);
     const limit = args.limit || 100;
     
     if (args.tableName === "logoHistory") {
@@ -204,11 +223,13 @@ export const getAllTableData = query({
   },
 });
 
-// Simple test that always returns success
+// Simple admin check - if you have any identity, you're an admin
 export const testAdminAccess = query({
-  handler: async () => {
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
     return {
-      success: true,
+      success: !!identity,
+      userIdentity: identity,
       adminKeyPresent: true,
       timestamp: Date.now()
     };
