@@ -1,9 +1,31 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { MutationCtx, QueryCtx } from "./_generated/server";
+
+// Helper function to check if user is admin
+async function checkIsAdmin(ctx: QueryCtx | MutationCtx) {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) {
+    throw new Error("Not authenticated");
+  }
+  
+  const user = await ctx.db
+    .query("userAnalytics")
+    .withIndex("by_user", q => q.eq("userId", identity.subject))
+    .first();
+    
+  if (!user?.isAdmin) {
+    throw new Error("Not authorized - admin access required");
+  }
+  return user;
+}
 
 // Direct queries with no auth checks
 export const getAllUsers = query({
   handler: async (ctx) => {
+    // Check admin access first
+    await checkIsAdmin(ctx);
+    
     console.log("Fetching all users from userAnalytics...");
     try {
       const users = await ctx.db
@@ -53,7 +75,7 @@ export const getAllUsers = query({
       return validUsers;
     } catch (err) {
       console.error("Error in getAllUsers:", err);
-      return []; // Return empty array instead of crashing
+      throw err; // Throw the error instead of returning empty array
     }
   },
 });
