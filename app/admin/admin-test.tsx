@@ -59,21 +59,21 @@ export function AdminTest() {
   };
 
   return (
-    <div className="space-y-4 p-4 border rounded-lg">
-      <h2 className="text-xl font-bold">Connection Tests</h2>
+    <div className="space-y-4 p-4 border border-gray-800 rounded-lg bg-gray-900">
+      <h2 className="text-xl font-bold text-white">Connection Tests</h2>
       
       <div className="space-y-2">
-        <Button onClick={testClerk}>Test Clerk Connection</Button>
-        <div className="text-sm whitespace-pre-wrap">{clerkTest}</div>
+        <Button onClick={testClerk} variant="outline">Test Clerk Connection</Button>
+        <div className="text-sm whitespace-pre-wrap bg-gray-800 p-3 rounded-md text-gray-200">{clerkTest || "No test run yet"}</div>
       </div>
 
       <div className="space-y-2">
-        <Button onClick={testConvex}>Test Convex Connection</Button>
-        <div className="text-sm whitespace-pre-wrap font-mono">{convexTest}</div>
+        <Button onClick={testConvex} variant="outline">Test Convex Connection</Button>
+        <div className="text-sm whitespace-pre-wrap font-mono bg-gray-800 p-3 rounded-md text-gray-200">{convexTest || "No test run yet"}</div>
       </div>
 
       {/* Debug Info */}
-      <div className="mt-4 p-2 bg-gray-100 rounded text-xs font-mono">
+      <div className="mt-4 p-3 bg-gray-800 rounded-md text-xs font-mono text-gray-300 space-y-1">
         <div>Convex URL: {process.env.NEXT_PUBLIC_CONVEX_URL}</div>
         <div>Direct Users Query State: {testUsers ? 'loaded' : 'loading/error'}</div>
         <div>Direct Logos Query State: {testLogos ? 'loaded' : 'loading/error'}</div>
