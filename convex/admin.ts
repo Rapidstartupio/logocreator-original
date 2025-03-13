@@ -13,12 +13,17 @@ const checkAdmin = async (ctx: QueryCtx | MutationCtx) => {
   // Debug log to see what we get from Clerk
   console.log("Auth Identity:", JSON.stringify(identity, null, 2));
 
-  // Get email from tokenIdentifier or email field
-  const userEmail = identity.email || identity.tokenIdentifier.split("|")[1];
-  const isAdmin = userEmail === "admin@admin.com";
+  // Get email directly from the token - Clerk puts it in the email field
+  const userEmail = identity.email;
+  
+  if (!userEmail) {
+    throw new Error("No email found in auth token");
+  }
 
+  const isAdmin = userEmail === "admin@admin.com";
+  
   if (!isAdmin) {
-    throw new Error("Unauthorized access to admin functions");
+    throw new Error(`Unauthorized access to admin functions. User email: ${userEmail}`);
   }
 
   return identity;
@@ -90,8 +95,9 @@ export const syncClerkUsers = mutation({
   handler: async (ctx, args) => {
     // Check either admin key or user identity
     const identity = await ctx.auth.getUserIdentity();
-    const isAdmin = identity?.email === "admin@admin.com" || 
-                   args.adminKey === (process.env.CONVEX_ADMIN_KEY || 'dev_admin');
+    const userEmail = identity?.email;
+    const isAdmin = (userEmail === "admin@admin.com") || 
+                   (args.adminKey === (process.env.CONVEX_ADMIN_KEY || 'dev_admin'));
     
     if (!isAdmin) {
       throw new Error("Unauthorized access to admin functions");
