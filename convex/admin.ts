@@ -10,13 +10,11 @@ const checkAdmin = async (ctx: QueryCtx | MutationCtx) => {
     throw new Error("No user identity found");
   }
 
-  // Check if user has admin email
-  const isAdminEmail = identity.email === "admin@admin.com";
-  
-  // Check if user has admin role in tokenIdentifier
-  const hasAdminRole = identity.tokenIdentifier.includes("role:admin");
+  // Get email from tokenIdentifier or email field
+  const userEmail = identity.email || identity.tokenIdentifier.split("|")[1];
+  const isAdmin = userEmail === "admin@admin.com";
 
-  if (!isAdminEmail && !hasAdminRole) {
+  if (!isAdmin) {
     throw new Error("Unauthorized access to admin functions");
   }
 
