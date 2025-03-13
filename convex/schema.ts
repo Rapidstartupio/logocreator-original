@@ -13,4 +13,16 @@ export default defineSchema({
     images: v.array(v.string()),
     timestamp: v.number()
   }).index("by_user", ["userId"])
+  .index("by_timestamp", ["timestamp"]),
+
+  userAnalytics: defineTable({
+    userId: v.string(),
+    email: v.string(),
+    totalLogosGenerated: v.number(),
+    lastActive: v.number(),
+    lastCompanyName: v.string(),
+    lastBusinessType: v.optional(v.string()),
+  }).index("by_user", ["userId"])
+  .index("by_lastActive", ["lastActive"])
+  .index("by_totalLogos", ["totalLogosGenerated"])
 }); 

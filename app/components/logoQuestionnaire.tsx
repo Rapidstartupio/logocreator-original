@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
+import { Input } from "../../components/ui/input"
+import { Button } from "../../components/ui/button"
 import { RefreshCw, Loader2, DownloadIcon } from 'lucide-react'
 import Image from "next/image"
 import { SignInButton, useUser } from "@clerk/nextjs"

@@ -12,18 +12,18 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/app/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { SignInButton, useUser } from "@clerk/nextjs";
 import * as RadioGroup from "@radix-ui/react-radio-group";
 import { DownloadIcon, RefreshCwIcon } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import Header from "@/app/components/Header";
+import Footer from "@/app/components/Footer";
 import { domain } from "@/app/lib/domain";
-import InfoTooltip from "@/components/InfoToolTip";
-import { NumberSelector } from "@/components/NumberSelector";
+import InfoTooltip from "@/app/components/InfoToolTip";
+import { NumberSelector } from "@/app/components/NumberSelector";
 import { cn } from "@/lib/utils";
 import { api } from "@/convex/_generated/api";
 import { useMutation } from "convex/react";
@@ -181,10 +181,16 @@ export default function Page() {
           description: await res.text(),
         });
       } else {
+        const errorText = await res.text();
+        console.error('API Error:', {
+          status: res.status,
+          statusText: res.statusText,
+          body: errorText,
+        });
         toast({
           variant: "destructive",
           title: "Whoops!",
-          description: `There was a problem processing your request: ${res.statusText}`,
+          description: `There was a problem processing your request: ${errorText || res.statusText}`,
         });
       }
     } catch (error) {
@@ -251,17 +257,17 @@ export default function Page() {
         localStorage.setItem('hasGeneratedLogo', 'true');
         
         await user.reload();
-      } else if (res.headers.get("Content-Type") === "text/plain") {
-        toast({
-          variant: "destructive",
-          title: res.statusText,
-          description: await res.text(),
-        });
       } else {
+        const errorText = await res.text();
+        console.error('API Error:', {
+          status: res.status,
+          statusText: res.statusText,
+          body: errorText,
+        });
         toast({
           variant: "destructive",
-          title: "Whoops!",
-          description: `There was a problem processing your request: ${res.statusText}`,
+          title: "Error generating logo",
+          description: `Error: ${res.status} - ${errorText}`,
         });
       }
     } catch (error) {

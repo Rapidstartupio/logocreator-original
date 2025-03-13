@@ -13,7 +13,9 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as admin from "../admin.js";
 import type * as logoHistory from "../logoHistory.js";
+import type * as userAnalytics from "../userAnalytics.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -24,7 +26,9 @@ import type * as logoHistory from "../logoHistory.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  admin: typeof admin;
   logoHistory: typeof logoHistory;
+  userAnalytics: typeof userAnalytics;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

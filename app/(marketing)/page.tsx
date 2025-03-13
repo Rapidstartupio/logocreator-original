@@ -1,6 +1,6 @@
 "use client"
 
-import LogoQuestionnaire from "@/components/logoQuestionnaire"
+import LogoQuestionnaire from "../components/logoQuestionnaire"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { SignInButton, UserButton, SignedIn, SignedOut } from "@clerk/nextjs"

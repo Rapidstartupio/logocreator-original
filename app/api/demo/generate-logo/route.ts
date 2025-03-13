@@ -5,6 +5,7 @@ import dedent from "dedent";
 // Move the function outside the POST handler
 const generateSingleImage = async (client: Together, prompt: string) => {
   try {
+    console.log('Attempting to generate image with prompt:', prompt.substring(0, 100) + '...');
     const response = await client.images.create({
       prompt,
       model: "black-forest-labs/FLUX.1.1-pro",
@@ -14,16 +15,30 @@ const generateSingleImage = async (client: Together, prompt: string) => {
       // @ts-expect-error - this is not typed in the API
       response_format: "base64",
     });
+    console.log('Image generation successful');
     return response.data[0].b64_json;
   } catch (error) {
     console.error('Error generating single image:', error);
-    throw error;
+    // Add more detailed error information
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`Image generation failed: ${errorMessage}`);
   }
 };
 
 export async function POST(req: Request) {
   try {
+    // Log environment check
+    console.log('Environment check:', {
+      hasTogetherKey: Boolean(process.env.TOGETHER_API_KEY),
+      keyLength: process.env.TOGETHER_API_KEY?.length,
+      nodeEnv: process.env.NODE_ENV
+    });
+
     const json = await req.json();
+    console.log('Request body:', {
+      ...json,
+      prompt: undefined // Don't log the full prompt for privacy
+    });
 
     const data = z
       .object({
@@ -37,10 +52,21 @@ export async function POST(req: Request) {
       })
       .parse(json);
 
-    // Initialize Together client with environment API key
+    // Validate Together API key
+    if (!process.env.TOGETHER_API_KEY) {
+      console.error('Together API key is not configured');
+      return Response.json(
+        { error: 'API configuration error: Missing API key' },
+        { status: 500 }
+      );
+    }
+
+    // Initialize Together client
     const client = new Together({
       apiKey: process.env.TOGETHER_API_KEY,
     });
+
+    console.log('Together client initialized');
 
     const flashyStyle =
       "Flashy, attention grabbing, bold, futuristic, and eye-catching. Use vibrant neon colors with metallic, shiny, and glossy accents.";

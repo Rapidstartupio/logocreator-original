@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Jura } from "next/font/google";
 import "../globals.css";
-import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "@/app/components/ui/toaster";
 import PlausibleProvider from "next-plausible";
 
@@ -46,32 +45,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
-      <html lang="en" className="h-full">
-        <head>
-          <PlausibleProvider domain="logox.ai.io" />
-          <link rel="icon" href="/favicon.ico" sizes="any" />
-          <meta name="color-scheme" content="dark" />
-          {/* Google tag (gtag.js) */}
-          <script async src="https://www.googletagmanager.com/gtag/js?id=AW-11180640635"></script>
-          <script 
-            dangerouslySetInnerHTML={{
-              __html: `
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                gtag('config', 'AW-11180640635');
-              `
-            }}
-          />
-        </head>
-        <body
-          className={`${jura.variable} dark min-h-full bg-[#343434] font-jura antialiased`}
-        >
-          {children}
-          <Toaster />
-        </body>
-      </html>
-    </ClerkProvider>
+    <>
+      <PlausibleProvider domain="logox.ai.io" />
+      <div className={`${jura.variable} dark min-h-full bg-[#343434] font-jura antialiased`}>
+        {children}
+        <Toaster />
+      </div>
+    </>
   );
 }

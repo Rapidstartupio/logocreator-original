@@ -1,6 +1,6 @@
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/app/components/ui/sheet";
 import { History } from "lucide-react";
-import { Button } from "./ui/button";
+import { Button } from "@/app/components/ui/button";
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
 import { useQuery } from "convex/react";
