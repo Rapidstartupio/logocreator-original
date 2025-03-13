@@ -127,49 +127,59 @@ export default function Page() {
 
     setIsLoading(true);
 
-    const res = await fetch("/api/generate-logo", {
-      method: "POST",
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        userAPIKey: localStorage.getItem("userAPIKey") || undefined,
-        companyName,
-        selectedLayout,
-        selectedStyle,
-        selectedPrimaryColor,
-        selectedBackgroundColor,
-        additionalInfo,
-        numberOfImages: 1,
-      }),
-    });
-
-    if (res.ok) {
-      const [newImage] = await res.json();
-      setGeneratedImages(prev => {
-        const updated = [...prev];
-        updated[frameIndex] = newImage;
-        return updated;
+    try {
+      const res = await fetch("/api/generate-logo", {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userAPIKey: localStorage.getItem("userAPIKey") || undefined,
+          companyName,
+          selectedLayout,
+          selectedStyle,
+          selectedPrimaryColor,
+          selectedBackgroundColor,
+          additionalInfo,
+          numberOfImages: 1,
+        }),
       });
-      await user.reload();
-    } else {
-      const errorData = await res.json().catch(() => null);
-      if (res.status === 402) {
-        toast({
-          variant: "destructive",
-          title: "Insufficient Credits",
-          description: "Please purchase more credits to continue generating logos.",
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: errorData?.error || "Failed to generate logo",
-        });
-      }
-    }
 
-    setIsLoading(false);
+      if (res.ok) {
+        const [newImage] = await res.json();
+        setGeneratedImages(prev => {
+          const updated = [...prev];
+          updated[frameIndex] = newImage;
+          return updated;
+        });
+        // Reload user data to update credits display
+        await user?.reload();
+      } else {
+        const errorData = await res.json().catch(() => null);
+        if (res.status === 402) {
+          toast({
+            variant: "destructive",
+            title: "Insufficient Credits",
+            description: "Please purchase more credits to continue generating logos.",
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: errorData?.error || "Failed to generate logo",
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error generating logo:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to connect to the server",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   // Update the main generateLogo function
@@ -230,7 +240,7 @@ export default function Page() {
           });
         }
       } catch (error) {
-        console.error('Demo fetch error:', error);
+        console.error('Error generating logo:', error);
         toast({
           variant: "destructive",
           title: "Error",
@@ -242,12 +252,8 @@ export default function Page() {
       return;
     }
 
-    setIsLoading(true);
-    setGeneratedImages([]);
-    setSelectedImageIndex(0);
-
     try {
-      console.log('Making request to: /api/generate-logo');
+      setIsLoading(true);
       const res = await fetch("/api/generate-logo", {
         method: "POST",
         headers: {
@@ -263,12 +269,6 @@ export default function Page() {
           additionalInfo,
           numberOfImages: parseInt(numberOfImages),
         }),
-      });
-
-      console.log('Response:', {
-        status: res.status,
-        statusText: res.statusText,
-        headers: Object.fromEntries(res.headers.entries())
       });
 
       if (res.ok) {
@@ -289,7 +289,8 @@ export default function Page() {
         // Mark that user has generated a logo
         localStorage.setItem('hasGeneratedLogo', 'true');
         
-        await user.reload();
+        // Reload user data to update credits display
+        await user?.reload();
       } else {
         const errorData = await res.json().catch(() => null);
         if (res.status === 402) {
