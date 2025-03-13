@@ -123,136 +123,50 @@ export default function Page() {
 
   // Update the generateSingleLogo function to handle single image refresh
   async function generateSingleLogo(frameIndex: number) {
-    if (!isSignedIn) {
-      // Check demo attempts for regeneration
-      const attempts = parseInt(localStorage.getItem('demoAttempts') || '5');
-      if (attempts <= 0) {
-        toast({
-          title: "Demo limit reached",
-          description: "You've used all your demo attempts. Sign in to continue generating logos and get more credits!",
-        });
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-        const res = await fetch('/api/demo/generate-logo', {
-          method: "POST",
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            companyName,
-            selectedLayout,
-            selectedStyle,
-            selectedPrimaryColor,
-            selectedBackgroundColor,
-            additionalInfo,
-            numberOfImages: 1,
-          }),
-        });
-
-        if (res.ok) {
-          const [newImage] = await res.json();
-          setGeneratedImages(prev => {
-            const updated = [...prev];
-            updated[frameIndex] = newImage;
-            return updated;
-          });
-          
-          // Decrement and update demo attempts
-          const remainingAttempts = attempts - 1;
-          localStorage.setItem('demoAttempts', remainingAttempts.toString());
-          setDemoAttemptsLeft(remainingAttempts);
-          
-          if (remainingAttempts <= 2) {
-            toast({
-              title: `${remainingAttempts} demo ${remainingAttempts === 1 ? 'attempt' : 'attempts'} left`,
-              description: "Sign in to get more credits and continue generating logos!",
-            });
-          }
-        } else {
-          const errorText = await res.text();
-          toast({
-            variant: "destructive",
-            title: "Error regenerating logo",
-            description: errorText || "Failed to regenerate demo logo",
-          });
-        }
-      } catch (error) {
-        console.error('Demo fetch error:', error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to connect to the server",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-      return;
-    }
+    if (!isSignedIn) return;
 
     setIsLoading(true);
 
-    try {
-      console.log('Making request to: /api/generate-logo');
-      const res = await fetch('/api/generate-logo', {
-        method: "POST",
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userAPIKey: localStorage.getItem("userAPIKey") || undefined,
-          companyName,
-          selectedLayout,
-          selectedStyle,
-          selectedPrimaryColor,
-          selectedBackgroundColor,
-          additionalInfo,
-          numberOfImages: 1,
-        }),
-      });
+    const res = await fetch("/api/generate-logo", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        userAPIKey: localStorage.getItem("userAPIKey") || undefined,
+        companyName,
+        selectedLayout,
+        selectedStyle,
+        selectedPrimaryColor,
+        selectedBackgroundColor,
+        additionalInfo,
+        numberOfImages: 1,
+      }),
+    });
 
-      console.log('Response:', {
-        status: res.status,
-        statusText: res.statusText,
-        headers: Object.fromEntries(res.headers.entries())
+    if (res.ok) {
+      const [newImage] = await res.json();
+      setGeneratedImages(prev => {
+        const updated = [...prev];
+        updated[frameIndex] = newImage;
+        return updated;
       });
-
-      if (res.ok) {
-        const [newImage] = await res.json();
-        setGeneratedImages(prev => {
-          const updated = [...prev];
-          updated[frameIndex] = newImage;
-          return updated;
-        });
-        await user.reload();
-      } else if (res.headers.get("Content-Type") === "text/plain") {
+      await user.reload();
+    } else {
+      const errorData = await res.json().catch(() => null);
+      if (res.status === 402) {
         toast({
           variant: "destructive",
-          title: res.statusText,
-          description: await res.text(),
+          title: "Insufficient Credits",
+          description: "Please purchase more credits to continue generating logos.",
         });
       } else {
-        const errorText = await res.text();
-        console.error('API Error:', {
-          status: res.status,
-          statusText: res.statusText,
-          body: errorText,
-        });
         toast({
           variant: "destructive",
-          title: "Whoops!",
-          description: `There was a problem processing your request: ${errorText || res.statusText}`,
+          title: "Error",
+          description: errorData?.error || "Failed to generate logo",
         });
       }
-    } catch (error) {
-      console.error('Fetch error:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to connect to the server",
-      });
     }
 
     setIsLoading(false);
@@ -334,7 +248,7 @@ export default function Page() {
 
     try {
       console.log('Making request to: /api/generate-logo');
-      const res = await fetch('/api/generate-logo', {
+      const res = await fetch("/api/generate-logo", {
         method: "POST",
         headers: {
           'Content-Type': 'application/json',
@@ -377,28 +291,31 @@ export default function Page() {
         
         await user.reload();
       } else {
-        const errorText = await res.text();
-        console.error('API Error:', {
-          status: res.status,
-          statusText: res.statusText,
-          body: errorText,
-        });
-        toast({
-          variant: "destructive",
-          title: "Error generating logo",
-          description: `Error: ${res.status} - ${errorText}`,
-        });
+        const errorData = await res.json().catch(() => null);
+        if (res.status === 402) {
+          toast({
+            variant: "destructive",
+            title: "Insufficient Credits",
+            description: "Please purchase more credits to continue generating logos.",
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: errorData?.error || "Failed to generate logo",
+          });
+        }
       }
     } catch (error) {
-      console.error('Fetch error:', error);
+      console.error('Error generating logo:', error);
       toast({
         variant: "destructive",
         title: "Error",
         description: "Failed to connect to the server",
       });
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   }
 
   return (

@@ -358,7 +358,7 @@ function AdminDashboardContent() {
               ⚠️ Admin access denied - Please ensure you are logged in as admin@admin.com
             </div>
           ) : testAccess ? (
-            <div className="text-green-500">✓ Connected to Convex as admin - Found {testAccess.recordCount} records</div>
+            <div className="text-green-500">✓ Connected to Convex as admin - Admin key {testAccess.adminKeyPresent ? 'present' : 'missing'}</div>
           ) : (
             <div className="text-red-500">✖ Not connected to Convex as admin</div>
           )}

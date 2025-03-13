@@ -220,6 +220,27 @@ Primary color is ${data.selectedPrimaryColor.toLowerCase()} and background color
       images.push(image);
     }
 
+    // If user is not using their own API key, decrement their credits
+    if (!data.userAPIKey) {
+      const metadata = await clerkClient.users.getUser(user.id);
+      const currentCredits = metadata.unsafeMetadata?.remaining || 0;
+      
+      if (typeof currentCredits === 'number' && currentCredits < data.numberOfImages) {
+        return Response.json(
+          { error: 'Insufficient credits' },
+          { status: 402 }
+        );
+      }
+
+      // Update credits in Clerk
+      await clerkClient.users.updateUserMetadata(user.id, {
+        unsafeMetadata: {
+          remaining: typeof currentCredits === 'number' ? currentCredits - data.numberOfImages : 0,
+          hasApiKey: false,
+        },
+      });
+    }
+
     // Update user analytics
     try {
       await convex.mutation(api.userAnalytics.updateUserAnalytics, {
