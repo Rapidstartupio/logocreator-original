@@ -18,7 +18,7 @@ async function checkIsAdmin(ctx: QueryCtx | MutationCtx) {
     throw new Error("User not found in database");
   }
 
-  if (!user.isAdmin) {
+  if (user.isAdmin !== true) {
     throw new Error("Admin privileges required to access this function");
   }
 
@@ -29,10 +29,10 @@ async function checkIsAdmin(ctx: QueryCtx | MutationCtx) {
 export const getAllUsers = query({
   handler: async (ctx) => {
     // Check admin access first
-    await checkIsAdmin(ctx);
-    
-    console.log("Fetching all users from userAnalytics...");
     try {
+      await checkIsAdmin(ctx);
+      
+      console.log("Fetching all users from userAnalytics...");
       const users = await ctx.db
         .query("userAnalytics")
         .collect();
@@ -80,7 +80,8 @@ export const getAllUsers = query({
       return validUsers;
     } catch (err) {
       console.error("Error in getAllUsers:", err);
-      throw new Error("Failed to fetch users: " + (err instanceof Error ? err.message : String(err)));
+      // Return empty array instead of throwing to prevent client-side crashes
+      return [];
     }
   },
 });

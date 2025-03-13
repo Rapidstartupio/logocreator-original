@@ -2,7 +2,7 @@
 
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import {
@@ -18,12 +18,22 @@ import { useAuth } from "@clerk/nextjs";
 
 export default function AdminDashboard() {
   const [selectedTab, setSelectedTab] = useState("overview");
+  const [error, setError] = useState<string | null>(null);
   const { isSignedIn } = useAuth();
   
   // Simple queries with error handling
   const users = useQuery(api.admin.getAllUsers);
   const recentLogos = useQuery(api.admin.getRecentLogos, { limit: 50 });
   
+  // Check for errors in the query results
+  useEffect(() => {
+    if (users === undefined && recentLogos === undefined) {
+      setError("Failed to load admin data. You may not have admin privileges.");
+    } else {
+      setError(null);
+    }
+  }, [users, recentLogos]);
+
   const formatTime = (timestamp: number | undefined) => {
     if (!timestamp) return "N/A";
     return new Date(timestamp).toLocaleString();
@@ -46,7 +56,7 @@ export default function AdminDashboard() {
   }
 
   // Show error if query failed (not admin)
-  if (users === undefined && recentLogos === undefined) {
+  if (error) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <Card className="bg-gray-900 border-gray-800">
@@ -55,6 +65,7 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <p>You do not have admin privileges to access this dashboard.</p>
+            <p className="text-red-400 mt-2 text-sm">{error}</p>
           </CardContent>
         </Card>
       </div>
