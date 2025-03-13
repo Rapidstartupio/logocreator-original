@@ -10,6 +10,9 @@ const checkAdmin = async (ctx: QueryCtx | MutationCtx) => {
     throw new Error("No user identity found");
   }
 
+  // Debug log to see what we get from Clerk
+  console.log("Auth Identity:", JSON.stringify(identity, null, 2));
+
   // Get email from tokenIdentifier or email field
   const userEmail = identity.email || identity.tokenIdentifier.split("|")[1];
   const isAdmin = userEmail === "admin@admin.com";
