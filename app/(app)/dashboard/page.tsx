@@ -99,6 +99,7 @@ export default function Page() {
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isFirstGeneration, setIsFirstGeneration] = useState(true);
+  const [demoAttemptsLeft, setDemoAttemptsLeft] = useState(5);
 
   const { isSignedIn, isLoaded, user } = useUser();
   const mutation = useMutation(api.logoHistory.save);
@@ -131,6 +132,15 @@ export default function Page() {
     const hasGeneratedBefore = localStorage.getItem('hasGeneratedLogo');
     if (hasGeneratedBefore) {
       setIsFirstGeneration(false);
+    }
+
+    // Initialize demo attempts from localStorage
+    const attempts = localStorage.getItem('demoAttempts');
+    if (attempts === null) {
+      localStorage.setItem('demoAttempts', '5');
+      setDemoAttemptsLeft(5);
+    } else {
+      setDemoAttemptsLeft(parseInt(attempts));
     }
   }, [generateLogo]);
 
@@ -206,7 +216,91 @@ export default function Page() {
 
   // Update the main generateLogo function
   async function generateLogo() {
-    if (!isSignedIn) return;
+    if (!isSignedIn) {
+      // Check demo attempts
+      const attempts = parseInt(localStorage.getItem('demoAttempts') || '5');
+      if (attempts <= 0) {
+        toast({
+          title: "Demo limit reached",
+          description: "You've used all your demo attempts. Sign in to continue generating logos and get more credits!",
+        });
+        return;
+      }
+
+      try {
+        console.log('Making request to demo endpoint: /api/demo/generate-logo');
+        const res = await fetch('/api/demo/generate-logo', {
+          method: "POST",
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            companyName,
+            selectedLayout,
+            selectedStyle,
+            selectedPrimaryColor,
+            selectedBackgroundColor,
+            additionalInfo,
+            numberOfImages: parseInt(numberOfImages),
+          }),
+        });
+
+        console.log('Demo Response:', {
+          status: res.status,
+          statusText: res.statusText,
+          headers: Object.fromEntries(res.headers.entries())
+        });
+
+        if (res.status === 303) {
+          const data = await res.json();
+          // Store form data for after sign in
+          localStorage.setItem('pendingLogoData', JSON.stringify(data.formData));
+          
+          toast({
+            title: "Sign in required",
+            description: data.message || "Please sign in to continue generating logos.",
+          });
+          return;
+        }
+
+        if (res.ok) {
+          const images = await res.json();
+          setGeneratedImages(images);
+          
+          // Decrement and update demo attempts
+          const remainingAttempts = attempts - 1;
+          localStorage.setItem('demoAttempts', remainingAttempts.toString());
+          setDemoAttemptsLeft(remainingAttempts);
+          
+          if (remainingAttempts <= 2) {
+            toast({
+              title: `${remainingAttempts} demo attempts left`,
+              description: "Sign in to get more credits and continue generating logos!",
+            });
+          }
+        } else {
+          const errorText = await res.text();
+          console.error('Demo API Error:', {
+            status: res.status,
+            statusText: res.statusText,
+            body: errorText,
+          });
+          toast({
+            variant: "destructive",
+            title: "Error generating logo",
+            description: errorText || "Failed to generate demo logo",
+          });
+        }
+      } catch (error) {
+        console.error('Demo fetch error:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to connect to the server",
+        });
+      }
+      return;
+    }
 
     setIsLoading(true);
     setGeneratedImages([]);
@@ -461,7 +555,7 @@ export default function Page() {
                   size="lg"
                   className="w-full text-base font-bold"
                   type="button"
-                  disabled={isLoading}
+                  disabled={isLoading || (!isSignedIn && demoAttemptsLeft <= 0)}
                   onClick={async () => {
                     console.log('Button clicked, calling generateLogo');
                     setGeneratedImages([]);
@@ -479,8 +573,13 @@ export default function Page() {
                       className="mr-2"
                     />
                   )}
-                  {isLoading ? "Loading..." : "Generate Logo"}{" "}
+                  {isLoading ? "Loading..." : (!isSignedIn && demoAttemptsLeft <= 0) ? "Sign in to continue" : "Generate Logo"}{" "}
                 </Button>
+                {!isSignedIn && demoAttemptsLeft > 0 && (
+                  <p className="mt-2 text-center text-sm text-gray-400">
+                    {demoAttemptsLeft} demo {demoAttemptsLeft === 1 ? 'attempt' : 'attempts'} remaining
+                  </p>
+                )}
               </div>
             </fieldset>
           </form>
