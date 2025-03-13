@@ -144,9 +144,100 @@ export default function Page() {
     }
   }, [generateLogo]);
 
-  // Update the generateLogo function to handle single image refresh
+  // Update the generateSingleLogo function to handle single image refresh
   async function generateSingleLogo(frameIndex: number) {
-    if (!isSignedIn) return;
+    if (!isSignedIn) {
+      // Check demo attempts for regeneration
+      const attempts = parseInt(localStorage.getItem('demoAttempts') || '5');
+      if (attempts <= 0) {
+        toast({
+          title: "Demo limit reached",
+          description: "You've used all your demo attempts. Sign in to continue generating logos and get more credits!",
+        });
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        console.log('Making request to demo endpoint for regeneration: /api/demo/generate-logo');
+        const res = await fetch('/api/demo/generate-logo', {
+          method: "POST",
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            companyName,
+            selectedLayout,
+            selectedStyle,
+            selectedPrimaryColor,
+            selectedBackgroundColor,
+            additionalInfo,
+            numberOfImages: 1,
+          }),
+        });
+
+        console.log('Demo Regenerate Response:', {
+          status: res.status,
+          statusText: res.statusText,
+          headers: Object.fromEntries(res.headers.entries())
+        });
+
+        if (res.status === 303) {
+          const data = await res.json();
+          // Store form data for after sign in
+          localStorage.setItem('pendingLogoData', JSON.stringify(data.formData));
+          
+          toast({
+            title: "Sign in required",
+            description: data.message || "Please sign in to continue generating logos.",
+          });
+          return;
+        }
+
+        if (res.ok) {
+          const [newImage] = await res.json();
+          setGeneratedImages(prev => {
+            const updated = [...prev];
+            updated[frameIndex] = newImage;
+            return updated;
+          });
+          
+          // Decrement and update demo attempts
+          const remainingAttempts = attempts - 1;
+          localStorage.setItem('demoAttempts', remainingAttempts.toString());
+          setDemoAttemptsLeft(remainingAttempts);
+          
+          if (remainingAttempts <= 2) {
+            toast({
+              title: `${remainingAttempts} demo ${remainingAttempts === 1 ? 'attempt' : 'attempts'} left`,
+              description: "Sign in to get more credits and continue generating logos!",
+            });
+          }
+        } else {
+          const errorText = await res.text();
+          console.error('Demo API Error:', {
+            status: res.status,
+            statusText: res.statusText,
+            body: errorText,
+          });
+          toast({
+            variant: "destructive",
+            title: "Error regenerating logo",
+            description: errorText || "Failed to regenerate demo logo",
+          });
+        }
+      } catch (error) {
+        console.error('Demo fetch error:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to connect to the server",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
 
     setIsLoading(true);
 
