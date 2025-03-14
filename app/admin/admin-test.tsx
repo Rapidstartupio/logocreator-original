@@ -32,7 +32,13 @@ export default function AdminTest() {
 
   // Fetch admin data
   const userStats = useQuery(api.admin.getUserStats);
-  const recentLogos = useQuery(api.admin.getRecentLogos);
+  const recentLogos = useQuery(api.admin.getRecentLogos, {
+    // Provide default parameters for pagination and search
+    limit: 10,
+    cursor: undefined,
+    searchTerm: "",
+    userId: ""
+  });
 
   // Test Clerk authentication
   const testClerk = async () => {
