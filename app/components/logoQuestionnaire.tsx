@@ -87,6 +87,35 @@ export default function LogoQuestionnaire() {
     { name: "minimal", icon: "/minimal.svg" },
   ]
 
+  // Function to format image source correctly
+  const formatImageSrc = (imageData: string): string => {
+    if (!imageData) return "/placeholder.svg";
+    
+    // Check if the image is already a URL (starts with http or https)
+    if (imageData.startsWith('http://') || imageData.startsWith('https://')) {
+      return imageData;
+    }
+    
+    // Check if it's a base64 string in JSON format (starts with [" and contains 4QC8R)
+    if (imageData.startsWith('["') && imageData.includes('4QC8R')) {
+      try {
+        // Try to extract the base64 data from the string format
+        const cleanedData = imageData.replace(/\[|"|\]/g, '');
+        return `data:image/png;base64,${cleanedData}`;
+      } catch (error) {
+        console.error('Error formatting image data:', error);
+        return '/placeholder.svg'; // Fallback to placeholder
+      }
+    }
+    
+    // If it's already a properly formatted base64 string
+    if (imageData.startsWith('data:image')) {
+      return imageData;
+    }
+    
+    // Assume it's a base64 string without the data:image prefix
+    return `data:image/png;base64,${imageData}`;
+  };
 
   const handleNext = () => {
     if (currentQuestion < questions.length - 1) {
@@ -127,7 +156,7 @@ export default function LogoQuestionnaire() {
         const data = await res.json()
         setFormData(prev => ({
           ...prev,
-          generatedLogoUrl: `data:image/png;base64,${data[0]}`
+          generatedLogoUrl: formatImageSrc(data[0])
         }))
         setShowResult(true)
       } else {
@@ -385,9 +414,11 @@ export default function LogoQuestionnaire() {
     return (
       <div className="min-h-[600px] flex flex-col items-center justify-center p-6 bg-gray-900 text-white">
         <div className="relative mb-8">
-          <img
-            src={formData.generatedLogoUrl || "/placeholder.svg"}
+          <Image
+            src={formatImageSrc(formData.generatedLogoUrl || "")}
             alt="Generated Logo"
+            width={256}
+            height={256}
             className="w-64 h-64 rounded-xl shadow-lg"
           />
           <Button 

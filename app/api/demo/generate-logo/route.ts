@@ -128,7 +128,6 @@ Primary color is ${data.selectedPrimaryColor.toLowerCase()} and background color
           backgroundColor: data.selectedBackgroundColor,
           additionalInfo: data.additionalInfo,
           images: [image],
-          // New fields
           businessType: data.additionalInfo,
           prompt: prompt,
           styleDetails: styleLookup[data.selectedStyle],
@@ -160,7 +159,6 @@ Primary color is ${data.selectedPrimaryColor.toLowerCase()} and background color
           backgroundColor: data.selectedBackgroundColor,
           additionalInfo: data.additionalInfo,
           images: [],
-          // New fields
           businessType: data.additionalInfo,
           prompt: prompt,
           styleDetails: styleLookup[data.selectedStyle],

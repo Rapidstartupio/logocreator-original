@@ -1,6 +1,13 @@
+"use client";
+
 import { SignUp } from "@clerk/nextjs";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { useCallback } from "react";
 
 export default function Page() {
+  const transferDemoLogos = useMutation(api.auth.transferDemoLogos);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-900">
       <SignUp

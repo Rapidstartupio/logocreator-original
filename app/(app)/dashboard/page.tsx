@@ -100,9 +100,41 @@ export default function Page() {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isFirstGeneration, setIsFirstGeneration] = useState(true);
   const [demoAttemptsLeft, setDemoAttemptsLeft] = useState(5);
+  const [hasTransferredDemos, setHasTransferredDemos] = useState(false);
 
   const { isSignedIn, isLoaded, user } = useUser();
   const mutation = useMutation(api.logoHistory.save);
+  const transferDemoLogos = useMutation(api.auth.transferDemoLogos);
+  
+  // Function to format image source correctly
+  const formatImageSrc = (imageData: string): string => {
+    if (!imageData) return "/placeholder.svg";
+    
+    // Check if the image is already a URL (starts with http or https)
+    if (imageData.startsWith('http://') || imageData.startsWith('https://')) {
+      return imageData;
+    }
+    
+    // Check if it's a base64 string in JSON format (starts with [" and contains 4QC8R)
+    if (imageData.startsWith('["') && imageData.includes('4QC8R')) {
+      try {
+        // Try to extract the base64 data from the string format
+        const cleanedData = imageData.replace(/\[|"|\]/g, '');
+        return `data:image/png;base64,${cleanedData}`;
+      } catch (error) {
+        console.error('Error formatting image data:', error);
+        return '/placeholder.svg'; // Fallback to placeholder
+      }
+    }
+    
+    // If it's already a properly formatted base64 string
+    if (imageData.startsWith('data:image')) {
+      return imageData;
+    }
+    
+    // Assume it's a base64 string without the data:image prefix
+    return `data:image/png;base64,${imageData}`;
+  };
 
   useEffect(() => {
     // Initialize demo attempts if not already set
@@ -119,7 +151,64 @@ export default function Page() {
     if (hasGeneratedBefore) {
       setIsFirstGeneration(false);
     }
-  }, []);
+    
+    // Check for pending logo data from history selection
+    const pendingLogoData = localStorage.getItem('pendingLogoData');
+    if (pendingLogoData) {
+      try {
+        const data = JSON.parse(pendingLogoData);
+        
+        // Set form data
+        setCompanyName(data.companyName || "");
+        setSelectedLayout(data.layout || layouts[0].name);
+        setSelectedStyle(data.style || logoStyles[0].name);
+        setSelectedPrimaryColor(data.primaryColor || primaryColors[0].name);
+        setSelectedBackgroundColor(data.backgroundColor || backgroundColors[0].name);
+        setAdditionalInfo(data.additionalInfo || "");
+        
+        // Format and set images
+        if (data.generatedImages && Array.isArray(data.generatedImages)) {
+          // Process images to ensure they're properly formatted
+          const formattedImages = data.generatedImages.map((img: string) => {
+            // If the image already has the data:image prefix, extract just the base64 part
+            if (img.startsWith('data:image')) {
+              const base64Data = img.split(',')[1];
+              return base64Data || img;
+            }
+            return img;
+          });
+          
+          setGeneratedImages(formattedImages);
+          setNumberOfImages(formattedImages.length.toString());
+          setSelectedImageIndex(0);
+        }
+        
+        // Clear the pending data
+        localStorage.removeItem('pendingLogoData');
+      } catch (error) {
+        console.error('Error loading logo data from history:', error);
+        localStorage.removeItem('pendingLogoData');
+      }
+    }
+
+    // Add effect to handle demo logo transfer
+    const handleDemoTransfer = async () => {
+      if (isSignedIn && user && !hasTransferredDemos) {
+        try {
+          await transferDemoLogos({
+            userId: user.id,
+            email: user.primaryEmailAddress?.emailAddress || "",
+          });
+          setHasTransferredDemos(true);
+          localStorage.removeItem('demoAttempts'); // Clear demo attempts after transfer
+        } catch (error) {
+          console.error('Error transferring demo logos:', error);
+        }
+      }
+    };
+
+    handleDemoTransfer();
+  }, [isSignedIn, user, hasTransferredDemos, transferDemoLogos]);
 
   // Update the generateSingleLogo function to handle single image refresh
   async function generateSingleLogo(frameIndex: number) {
@@ -578,7 +667,7 @@ export default function Page() {
                       >
                         {generatedImages[index] ? (
                           <Image
-                            src={`data:image/png;base64,${generatedImages[index]}`}
+                            src={formatImageSrc(generatedImages[index])}
                             alt={`Generated logo variation ${index + 1}`}
                             width={256}
                             height={256}
@@ -603,7 +692,7 @@ export default function Page() {
                           className={`${isLoading ? "animate-pulse" : ""} rounded-lg`}
                           width={512}
                           height={512}
-                          src={`data:image/png;base64,${generatedImages[selectedImageIndex]}`}
+                          src={formatImageSrc(generatedImages[selectedImageIndex])}
                           alt=""
                           priority
                         />
@@ -618,7 +707,7 @@ export default function Page() {
                             <>
                               <Button size="icon" variant="secondary" asChild>
                                 <a
-                                  href={`data:image/png;base64,${generatedImages[selectedImageIndex]}`}
+                                  href={formatImageSrc(generatedImages[selectedImageIndex])}
                                   download="logo.png"
                                 >
                                   <DownloadIcon />

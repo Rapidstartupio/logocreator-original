@@ -5,7 +5,7 @@ import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Doc } from "@/convex/_generated/dataModel";
+import { useState } from "react";
 
 export interface LogoHistory {
   id: string;
@@ -19,53 +19,97 @@ export interface LogoHistory {
     backgroundColor: string;
     additionalInfo?: string;
   };
+  companyName: string;
+  layout: string;
+  style: string;
+  primaryColor: string;
+  backgroundColor: string;
+  additionalInfo?: string;
 }
 
 interface HistoryDrawerProps {
   onSelectHistory: (history: LogoHistory) => void;
 }
 
-export default function HistoryDrawer({ onSelectHistory }: HistoryDrawerProps) {
-  const history = useQuery(api.logoHistory.list) || [];
-
-  const transformToLogoHistory = (item: Doc<"logoHistory">): LogoHistory => ({
-    id: item._id,
-    timestamp: new Date(item.timestamp).toISOString(),
-    images: item.images,
-    settings: {
-      companyName: item.companyName,
-      layout: item.layout,
-      style: item.style,
-      primaryColor: item.primaryColor,
-      backgroundColor: item.backgroundColor,
-      additionalInfo: item.additionalInfo,
+export function HistoryDrawer({ onSelectHistory }: HistoryDrawerProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const logoHistory = useQuery(api.logoHistory.list);
+  
+  // Function to format image source correctly
+  const formatImageSrc = (imageData: string): string => {
+    if (!imageData) return "/placeholder.svg";
+    
+    // Check if the image is already a URL (starts with http or https)
+    if (imageData.startsWith('http://') || imageData.startsWith('https://')) {
+      return imageData;
     }
-  });
+    
+    // Check if it's a base64 string in JSON format (starts with [" and contains 4QC8R)
+    if (imageData.startsWith('["') && imageData.includes('4QC8R')) {
+      try {
+        // Try to extract the base64 data from the string format
+        const cleanedData = imageData.replace(/\[|"|\]/g, '');
+        return `data:image/png;base64,${cleanedData}`;
+      } catch (error) {
+        console.error('Error formatting image data:', error);
+        return '/placeholder.svg'; // Fallback to placeholder
+      }
+    }
+    
+    // If it's already a properly formatted base64 string
+    if (imageData.startsWith('data:image')) {
+      return imageData;
+    }
+    
+    // Assume it's a base64 string without the data:image prefix
+    return `data:image/png;base64,${imageData}`;
+  };
+  
+  const handleSelectHistory = (item: LogoHistory) => {
+    onSelectHistory(item);
+    setIsOpen(false);
+  };
 
   return (
-    <Sheet>
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="text-white">
+        <Button variant="ghost" size="icon" onClick={() => setIsOpen(true)}>
           <History className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-[400px] bg-[#2C2C2C] text-white">
+      <SheetContent className="w-[400px] sm:w-[540px] bg-gray-900 text-white">
         <SheetHeader>
           <SheetTitle className="text-white">Logo History</SheetTitle>
         </SheetHeader>
-        <div className="mt-4 flex flex-col gap-4">
-          {history.length === 0 ? (
-            <p className="text-gray-400">No history yet</p>
-          ) : (
-            history.map((item) => (
-              <div
-                key={item._id}
-                className="group cursor-pointer rounded-lg border border-gray-700 p-4 hover:border-gray-500"
-                onClick={() => onSelectHistory(transformToLogoHistory(item))}
+        <div className="mt-6 space-y-6 overflow-y-auto max-h-[calc(100vh-120px)]">
+          {logoHistory && logoHistory.length > 0 ? (
+            logoHistory.map((item) => (
+              <div 
+                key={item._id} 
+                className="border border-gray-700 rounded-lg p-4 cursor-pointer hover:bg-gray-800 transition-colors"
+                onClick={() => handleSelectHistory({
+                  id: item._id,
+                  timestamp: String(item.timestamp),
+                  images: item.images,
+                  settings: {
+                    companyName: item.companyName,
+                    layout: item.layout,
+                    style: item.style,
+                    primaryColor: item.primaryColor,
+                    backgroundColor: item.backgroundColor,
+                    additionalInfo: item.additionalInfo,
+                  },
+                  companyName: item.companyName,
+                  layout: item.layout,
+                  style: item.style,
+                  primaryColor: item.primaryColor,
+                  backgroundColor: item.backgroundColor,
+                  additionalInfo: item.additionalInfo
+                })}
               >
-                <div className="mb-2 flex items-center justify-between">
+                <div className="flex justify-between items-start mb-3">
                   <h3 className="font-medium">{item.companyName}</h3>
-                  <span className="text-sm text-gray-400">
+                  <span className="text-xs text-gray-400">
                     {formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}
                   </span>
                 </div>
@@ -73,7 +117,7 @@ export default function HistoryDrawer({ onSelectHistory }: HistoryDrawerProps) {
                   {item.images.map((image, index) => (
                     <div key={index} className="aspect-square overflow-hidden rounded-md">
                       <Image
-                        src={`data:image/png;base64,${image}`}
+                        src={formatImageSrc(image)}
                         alt={`Generated logo ${index + 1}`}
                         width={100}
                         height={100}
@@ -92,9 +136,13 @@ export default function HistoryDrawer({ onSelectHistory }: HistoryDrawerProps) {
                 </div>
               </div>
             ))
+          ) : (
+            <div className="text-center py-10 text-gray-400">
+              No logo history found
+            </div>
           )}
         </div>
       </SheetContent>
     </Sheet>
   );
-} 
+}

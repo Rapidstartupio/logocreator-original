@@ -10,7 +10,7 @@ import {
 import { domain } from "@/app/lib/domain";
 import { APIKeyDialog } from "./APIKeyDialog";
 import { CreditsDialog } from "./CreditsDialog";
-import HistoryDrawer from "./HistoryDrawer";
+import { HistoryDrawer } from "./HistoryDrawer";
 import type { LogoHistory } from "./HistoryDrawer";
 
 export default function Header({ className }: { className?: string }) {

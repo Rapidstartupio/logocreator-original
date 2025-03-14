@@ -8,6 +8,34 @@ interface ImageGridProps {
 }
 
 export function ImageGrid({ images, selectedIndex, onSelect }: ImageGridProps) {
+  // Function to format image source correctly
+  const formatImageSrc = (imageData: string): string => {
+    // Check if the image is already a URL (starts with http or https)
+    if (imageData.startsWith('http://') || imageData.startsWith('https://')) {
+      return imageData;
+    }
+    
+    // Check if it's a base64 string in JSON format (starts with [" and contains 4QC8R)
+    if (imageData.startsWith('["') && imageData.includes('4QC8R')) {
+      try {
+        // Try to extract the base64 data from the string format
+        const cleanedData = imageData.replace(/\[|"|\]/g, '');
+        return `data:image/png;base64,${cleanedData}`;
+      } catch (error) {
+        console.error('Error formatting image data:', error);
+        return '/placeholder.svg'; // Fallback to placeholder
+      }
+    }
+    
+    // If it's already a properly formatted base64 string
+    if (imageData.startsWith('data:image')) {
+      return imageData;
+    }
+    
+    // Assume it's a base64 string without the data:image prefix
+    return `data:image/png;base64,${imageData}`;
+  };
+
   return (
     <div className={cn(
       "grid gap-4",
@@ -24,7 +52,7 @@ export function ImageGrid({ images, selectedIndex, onSelect }: ImageGridProps) {
           )}
         >
           <Image
-            src={`data:image/png;base64,${image}`}
+            src={formatImageSrc(image)}
             alt={`Generated logo variation ${index + 1}`}
             fill
             className="object-cover"
@@ -33,4 +61,4 @@ export function ImageGrid({ images, selectedIndex, onSelect }: ImageGridProps) {
       ))}
     </div>
   );
-} 
+}
