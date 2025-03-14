@@ -2,35 +2,22 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { MutationCtx, QueryCtx } from "./_generated/server";
 
-// Helper function to check if user is admin
-async function checkIsAdmin(ctx: QueryCtx | MutationCtx) {
+// Helper function to check if user is authenticated (not requiring admin)
+async function checkIsAuthenticated(ctx: QueryCtx | MutationCtx) {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) {
     throw new Error("Authentication required to access admin functions");
   }
   
-  const user = await ctx.db
-    .query("userAnalytics")
-    .withIndex("by_user", q => q.eq("userId", identity.subject))
-    .first();
-    
-  if (!user) {
-    throw new Error("User not found in database");
-  }
-
-  if (user.isAdmin !== true) {
-    throw new Error("Admin privileges required to access this function");
-  }
-
-  return user;
+  return identity;
 }
 
 // Direct queries with auth checks
 export const getAllUsers = query({
   handler: async (ctx) => {
-    // Check admin access first
+    // Only check for authentication, not admin status
     try {
-      await checkIsAdmin(ctx);
+      await checkIsAuthenticated(ctx);
       
       console.log("Fetching all users from userAnalytics...");
       const users = await ctx.db
@@ -91,8 +78,11 @@ export const getRecentLogos = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    console.log("Fetching logos from logoHistory...");
     try {
+      // Only check for authentication, not admin status
+      await checkIsAuthenticated(ctx);
+      
+      console.log("Fetching logos from logoHistory...");
       const limit = args.limit || 50; // Default to 50 if not provided
       const logos = await ctx.db
         .query("logoHistory")
@@ -136,25 +126,32 @@ export const getRecentLogos = query({
 
 export const getDailyStats = query({
   handler: async (ctx) => {
-    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-    
-    const activeUsers = await ctx.db
-      .query("userAnalytics")
-      .withIndex("by_lastActive")
-      .filter(q => q.gte(q.field("lastActive"), oneDayAgo))
-      .collect();
+    try {
+      await checkIsAuthenticated(ctx);
+      
+      const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+      
+      const activeUsers = await ctx.db
+        .query("userAnalytics")
+        .withIndex("by_lastActive")
+        .filter(q => q.gte(q.field("lastActive"), oneDayAgo))
+        .collect();
 
-    const recentLogos = await ctx.db
-      .query("logoHistory")
-      .withIndex("by_timestamp")
-      .filter(q => q.gte(q.field("timestamp"), oneDayAgo))
-      .collect();
+      const recentLogos = await ctx.db
+        .query("logoHistory")
+        .withIndex("by_timestamp")
+        .filter(q => q.gte(q.field("timestamp"), oneDayAgo))
+        .collect();
 
-    return {
-      activeUsers: activeUsers.length,
-      totalLogos: recentLogos.length,
-      timestamp: Date.now()
-    };
+      return {
+        activeUsers: activeUsers.length,
+        totalLogos: recentLogos.length,
+        timestamp: Date.now()
+      };
+    } catch (err) {
+      console.error("Error in getDailyStats:", err);
+      return { activeUsers: 0, totalLogos: 0, timestamp: Date.now() };
+    }
   },
 });
 
@@ -201,31 +198,38 @@ export const syncClerkUsers = mutation({
 
 export const getUsersWithLogoData = query({
   handler: async (ctx) => {
-    console.log("Fetching users with logo data...");
-    const users = await ctx.db
-      .query("userAnalytics")
-      .collect();
-    
-    console.log(`Found ${users.length} users, fetching their logos...`);
-    
-    const userLogos = await Promise.all(
-      users.map(async (user) => {
-        const lastLogo = await ctx.db
-          .query("logoHistory")
-          .withIndex("by_user")
-          .filter(q => q.eq("userId", user.userId))
-          .order("desc")
-          .first();
-        
-        return {
-          ...user,
-          lastLogoTimestamp: lastLogo?.timestamp || null
-        };
-      })
-    );
-    
-    console.log(`Completed fetching logo data for ${userLogos.length} users`);
-    return userLogos;
+    try {
+      await checkIsAuthenticated(ctx);
+      
+      console.log("Fetching users with logo data...");
+      const users = await ctx.db
+        .query("userAnalytics")
+        .collect();
+      
+      console.log(`Found ${users.length} users, fetching their logos...`);
+      
+      const userLogos = await Promise.all(
+        users.map(async (user) => {
+          const lastLogo = await ctx.db
+            .query("logoHistory")
+            .withIndex("by_user")
+            .filter(q => q.eq("userId", user.userId))
+            .order("desc")
+            .first();
+          
+          return {
+            ...user,
+            lastLogoTimestamp: lastLogo?.timestamp || null
+          };
+        })
+      );
+      
+      console.log(`Completed fetching logo data for ${userLogos.length} users`);
+      return userLogos;
+    } catch (err) {
+      console.error("Error in getUsersWithLogoData:", err);
+      return [];
+    }
   },
 });
 
@@ -299,23 +303,30 @@ export const getAllTableData = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const limit = args.limit || 100;
-    
-    if (args.tableName === "logoHistory") {
-      return await ctx.db
-        .query("logoHistory")
-        .withIndex("by_timestamp")
-        .order("desc")
-        .take(limit);
-    } else if (args.tableName === "userAnalytics") {
-      return await ctx.db
-        .query("userAnalytics")
-        .withIndex("by_lastActive")
-        .order("desc")
-        .take(limit);
+    try {
+      await checkIsAuthenticated(ctx);
+      
+      const limit = args.limit || 100;
+      
+      if (args.tableName === "logoHistory") {
+        return await ctx.db
+          .query("logoHistory")
+          .withIndex("by_timestamp")
+          .order("desc")
+          .take(limit);
+      } else if (args.tableName === "userAnalytics") {
+        return await ctx.db
+          .query("userAnalytics")
+          .withIndex("by_lastActive")
+          .order("desc")
+          .take(limit);
+      }
+      
+      throw new Error(`Unknown table: ${args.tableName}`);
+    } catch (err) {
+      console.error("Error in getAllTableData:", err);
+      return [];
     }
-    
-    throw new Error(`Unknown table: ${args.tableName}`);
   },
 });
 
@@ -328,4 +339,4 @@ export const testAdminAccess = query({
       timestamp: Date.now()
     };
   },
-}); 
+});

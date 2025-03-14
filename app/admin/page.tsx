@@ -28,7 +28,7 @@ export default function AdminDashboard() {
   // Check for errors in the query results
   useEffect(() => {
     if (users === undefined && recentLogos === undefined) {
-      setError("Failed to load admin data. You may not have admin privileges.");
+      setError("Failed to load admin data. Please make sure you're authenticated.");
     } else {
       setError(null);
     }
@@ -55,17 +55,16 @@ export default function AdminDashboard() {
     );
   }
 
-  // Show error if query failed (not admin)
+  // Show error if query failed
   if (error) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <Card className="bg-gray-900 border-gray-800">
           <CardHeader>
-            <CardTitle className="text-red-500">Access Denied</CardTitle>
+            <CardTitle className="text-red-500">Error Loading Data</CardTitle>
           </CardHeader>
           <CardContent>
-            <p>You do not have admin privileges to access this dashboard.</p>
-            <p className="text-red-400 mt-2 text-sm">{error}</p>
+            <p>{error}</p>
           </CardContent>
         </Card>
       </div>
