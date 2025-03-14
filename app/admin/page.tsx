@@ -5,9 +5,12 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
-import { ScrollArea } from "@/app/components/ui/scroll-area";
+import { Input } from "@/app/components/ui/input";
+import { Button } from "@/app/components/ui/button";
 import Image from "next/image";
 import { useUser, useAuth } from "@clerk/nextjs";
+import { formatDistanceToNow } from "date-fns";
+import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 
 // Define types for our data
 interface UserData {
@@ -52,6 +55,43 @@ interface ClerkUser {
   lastSignInAt?: string;
 }
 
+interface PaginationData {
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+}
+
+// Function to format image source correctly
+const formatImageSrc = (imageData: string): string => {
+  if (!imageData) return "/placeholder.svg";
+  
+  // Check if the image is already a URL (starts with http or https)
+  if (imageData.startsWith('http://') || imageData.startsWith('https://')) {
+    return imageData;
+  }
+  
+  // Check if it's a base64 string in JSON format (starts with [" and contains 4QC8R)
+  if (imageData.startsWith('["') && imageData.includes('4QC8R')) {
+    try {
+      // Try to extract the base64 data from the string format
+      const cleanedData = imageData.replace(/\[|"|\]/g, '');
+      return `data:image/png;base64,${cleanedData}`;
+    } catch (error) {
+      console.error('Error formatting image data:', error);
+      return '/placeholder.svg'; // Fallback to placeholder
+    }
+  }
+  
+  // If it's already a properly formatted base64 string
+  if (imageData.startsWith('data:image')) {
+    return imageData;
+  }
+  
+  // Assume it's a base64 string without the data:image prefix
+  return `data:image/png;base64,${imageData}`;
+};
+
 export default function AdminPage() {
   const { user, isLoaded: userLoaded } = useUser();
   const { getToken } = useAuth();
@@ -68,8 +108,48 @@ export default function AdminPage() {
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [userError, setUserError] = useState<string | null>(null);
   
-  // Get logo data from Convex
-  const recentLogos = useQuery(api.admin.getRecentLogos);
+  // Pagination and search state
+  const [userPagination, setUserPagination] = useState<PaginationData>({
+    total: 0,
+    limit: 10,
+    offset: 0,
+    hasMore: false
+  });
+  const [logoSearchTerm, setLogoSearchTerm] = useState("");
+  const [userSearchTerm, setUserSearchTerm] = useState("");
+  const [logoCursor, setLogoCursor] = useState<string | null>(null);
+  const [hasMoreLogos, setHasMoreLogos] = useState(true);
+  
+  // Get logo data from Convex with search and pagination
+  const recentLogos = useQuery(api.admin.getRecentLogos, {
+    limit: 10,
+    cursor: logoCursor || undefined,
+    searchTerm: logoSearchTerm || undefined
+  });
+  
+  // Get total logo count
+  const logoCount = useQuery(api.admin.getTotalLogoCount);
+  
+  // Update total logos generated in stats
+  useEffect(() => {
+    if (logoCount?.success) {
+      setUserStats(prev => ({
+        ...prev,
+        totalLogosGenerated: logoCount.count
+      }));
+    }
+  }, [logoCount]);
+  
+  // Update cursor and hasMore state when logos data changes
+  useEffect(() => {
+    if (recentLogos?.success) {
+      setHasMoreLogos(!!recentLogos.continueCursor);
+      // Don't update cursor if we're on the first page and refreshing
+      if (logoCursor !== null || !recentLogos.continueCursor) {
+        setLogoCursor(recentLogos.continueCursor || null);
+      }
+    }
+  }, [recentLogos, logoCursor]);
   
   // Fetch users from Clerk API
   useEffect(() => {
@@ -86,210 +166,134 @@ export default function AdminPage() {
         // Check if user is admin (you might want to implement proper admin check)
         // For now, we'll assume the logged-in user is an admin
         
-        // Get users from Clerk
-        // We need to use the Clerk Backend API since the frontend SDK doesn't expose getUserList
-        // This is a workaround for demo purposes - in production, you should use a backend API route
-        const response = await fetch('/api/users');
+        // Get users from Clerk with pagination and search
+        const response = await fetch(
+          `/api/users?limit=${userPagination.limit}&offset=${userPagination.offset}${userSearchTerm ? `&query=${encodeURIComponent(userSearchTerm)}` : ''}`
+        );
         
         if (!response.ok) {
           throw new Error(`Failed to fetch users: ${response.statusText}`);
         }
         
-        const userList = await response.json() as ClerkUser[];
+        const data = await response.json();
+        const userList = data.users as ClerkUser[];
+        const pagination = data.pagination as PaginationData;
+        
+        // Update pagination data
+        setUserPagination(pagination);
         
         // Process user data
         const userData: UserData[] = userList.map((u: ClerkUser) => {
-          // Handle dates safely
-          let lastSignInAt: Date | undefined = undefined;
-          if (u.lastSignInAt) {
-            lastSignInAt = new Date(u.lastSignInAt);
-          }
-          
           return {
             id: u.id,
-            email: u.emailAddress || "No email",
-            firstName: u.firstName || undefined,
-            lastName: u.lastName || undefined,
+            email: u.emailAddress || "Unknown",
+            firstName: u.firstName,
+            lastName: u.lastName,
             imageUrl: u.imageUrl,
             createdAt: new Date(u.createdAt),
-            lastSignInAt,
-            totalLogosGenerated: 0 // We'll calculate this from logo data
+            lastSignInAt: u.lastSignInAt ? new Date(u.lastSignInAt) : undefined,
+            totalLogosGenerated: 0 // We'll update this later if we have logo data
           };
         });
         
-        // Create a map for quick lookup
+        // Create a map of users by ID for quick lookup
         const userMapData = new Map<string, UserData>();
         userData.forEach(u => userMapData.set(u.id, u));
         
-        // Calculate stats
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        const stats = {
-          totalUsers: userData.length,
-          activeUsersToday: userData.filter(u => u.lastSignInAt && u.lastSignInAt >= today).length,
-          newUsersToday: userData.filter(u => u.createdAt >= today).length,
-          totalLogosGenerated: 0 // We'll calculate this from logo data
-        };
-        
         setUsers(userData);
         setUserMap(userMapData);
-        setUserStats(stats);
+        setUserStats(prev => ({
+          ...prev,
+          totalUsers: pagination.total
+        }));
       } catch (error) {
         console.error("Error fetching users:", error);
-        setUserError(error instanceof Error ? error.message : "Failed to load users");
+        setUserError(error instanceof Error ? error.message : "Unknown error");
       } finally {
         setIsLoadingUsers(false);
       }
     }
     
     fetchUsers();
-  }, [userLoaded, user, getToken]);
+  }, [userLoaded, user, getToken, userPagination.limit, userPagination.offset, userSearchTerm]);
   
-  // Calculate logo stats and join with user data
-  useEffect(() => {
-    if (!recentLogos?.success || !recentLogos.data || users.length === 0) return;
-    
-    // Create a stable reference to the current users array to prevent infinite loops
-    const currentUsers = [...users];
-    
-    // Count logos per user
-    const logoCountByUser = new Map<string, number>();
-    
-    recentLogos.data.forEach(logo => {
-      if (!logo.userId) return;
-      
-      const currentCount = logoCountByUser.get(logo.userId) || 0;
-      logoCountByUser.set(logo.userId, currentCount + 1);
-    });
-    
-    // Check if we need to update users
-    let needsUpdate = false;
-    for (const user of currentUsers) {
-      const logoCount = logoCountByUser.get(user.id) || 0;
-      if (user.totalLogosGenerated !== logoCount) {
-        needsUpdate = true;
-        break;
-      }
-    }
-    
-    if (!needsUpdate) return;
-    
-    // Update user data with logo counts
-    const updatedUsers = currentUsers.map(user => ({
-      ...user,
-      totalLogosGenerated: logoCountByUser.get(user.id) || 0
+  // Combine logo data with user data
+  const logosWithUserData: LogoWithUserData[] = recentLogos?.success ? 
+    recentLogos.data.map(logo => {
+      const userData = userMap.get(logo.userId);
+      return {
+        ...logo,
+        userEmail: userData?.email || "Unknown",
+        userName: userData ? `${userData.firstName || ""} ${userData.lastName || ""}`.trim() : "Unknown"
+      };
+    }) : [];
+  
+  // Handle logo search
+  const handleLogoSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Reset cursor to get first page of results with the search term
+    setLogoCursor(null);
+  };
+  
+  // Handle user search
+  const handleUserSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Reset pagination offset to get first page of results with the search term
+    setUserPagination(prev => ({
+      ...prev,
+      offset: 0
     }));
-    
-    // Update user map
-    const updatedUserMap = new Map<string, UserData>();
-    updatedUsers.forEach(u => updatedUserMap.set(u.id, u));
-    
-    // Calculate total logos
-    const totalLogos = Array.from(logoCountByUser.values()).reduce((sum, count) => sum + count, 0);
-    
-    setUsers(updatedUsers);
-    setUserMap(updatedUserMap);
-    setUserStats(prev => ({ ...prev, totalLogosGenerated: totalLogos }));
-  }, [recentLogos, users]);
+  };
   
-  // Loading state for user data
-  if (isLoadingUsers || !userLoaded) {
-    return (
-      <div className="container mx-auto p-4">
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-center">Loading user data...</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+  // Handle user pagination
+  const handleUserPaginationChange = (direction: 'next' | 'prev') => {
+    setUserPagination(prev => {
+      if (direction === 'next' && prev.hasMore) {
+        return {
+          ...prev,
+          offset: prev.offset + prev.limit
+        };
+      } else if (direction === 'prev' && prev.offset > 0) {
+        return {
+          ...prev,
+          offset: Math.max(0, prev.offset - prev.limit)
+        };
+      }
+      return prev;
+    });
+  };
+  
+  // Handle logo pagination
+  const handleLogoPaginationChange = (direction: 'next' | 'prev') => {
+    if (direction === 'next' && hasMoreLogos) {
+      // Next page - cursor is already set by the useEffect
+    } else if (direction === 'prev') {
+      // Previous page - reset cursor to get first page
+      setLogoCursor(null);
+    }
+  };
+  
+  if (!userLoaded) {
+    return <div className="container mx-auto py-10">Loading...</div>;
   }
   
-  // Not signed in state
   if (!user) {
-    return (
-      <div className="container mx-auto p-4">
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-center">Please sign in to access the admin dashboard.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <div className="container mx-auto py-10">Please sign in to access the admin dashboard</div>;
   }
   
-  // User error state
-  if (userError) {
-    return (
-      <div className="container mx-auto p-4">
-        <Card className="bg-red-900/20 border-red-500">
-          <CardHeader>
-            <CardTitle>Error Loading Users</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p>{userError}</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-  
-  // Error state for logos
-  if (recentLogos?.success === false) {
-    return (
-      <div className="container mx-auto p-4">
-        <Card className="bg-red-900/20 border-red-500">
-          <CardHeader>
-            <CardTitle>Error Loading Logos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p>{recentLogos.error || "Unknown error"}</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-  
-  // Loading state for logo data
-  if (!recentLogos) {
-    return (
-      <div className="container mx-auto p-4">
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-center">Loading logo data...</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-  
-  // Join logo data with user data
-  const logosWithUserData: LogoWithUserData[] = recentLogos.data.map(logo => {
-    const userData = logo.userId ? userMap.get(logo.userId) : undefined;
-    
-    return {
-      ...logo,
-      userEmail: userData?.email || "Unknown",
-      userName: userData ? `${userData.firstName || ''} ${userData.lastName || ''}`.trim() : "Unknown"
-    };
-  });
-  
-  // Render the admin dashboard
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
+    <div className="container mx-auto py-10">
+      <h1 className="text-4xl font-bold mb-8">Admin Dashboard</h1>
       
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard title="Total Users" value={userStats.totalUsers} />
         <StatCard title="Active Users Today" value={userStats.activeUsersToday} />
         <StatCard title="New Users Today" value={userStats.newUsersToday} />
         <StatCard title="Total Logos Generated" value={userStats.totalLogosGenerated} />
       </div>
       
-      {/* Main Content */}
-      <Tabs defaultValue="logos" className="w-full">
+      <Tabs defaultValue="logos" className="mb-8">
         <TabsList className="mb-4">
           <TabsTrigger value="logos">Recent Logos</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
@@ -297,44 +301,139 @@ export default function AdminPage() {
         
         {/* Logos Tab */}
         <TabsContent value="logos">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Logo Generations</CardTitle>
-              <CardDescription>
-                Showing the most recent logo generations across all users
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[600px] pr-4">
-                <div className="space-y-6">
-                  {logosWithUserData.map((logo) => (
-                    <LogoCard key={logo.id} logo={logo} />
-                  ))}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
+          <div className="mb-4">
+            <form onSubmit={handleLogoSearch} className="flex gap-2 mb-4">
+              <Input 
+                placeholder="Search by company name"
+                value={logoSearchTerm}
+                onChange={(e) => setLogoSearchTerm(e.target.value)}
+                className="flex-1"
+              />
+              <Button type="submit">
+                <Search className="h-4 w-4 mr-2" />
+                Search
+              </Button>
+            </form>
+            
+            {/* Pagination Controls */}
+            <div className="flex justify-between items-center mb-4">
+              <Button 
+                variant="outline" 
+                onClick={() => handleLogoPaginationChange('prev')} 
+                disabled={!logoCursor}
+              >
+                <ChevronLeft className="h-4 w-4 mr-2" /> Previous
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => handleLogoPaginationChange('next')} 
+                disabled={!hasMoreLogos}
+              >
+                Next <ChevronRight className="h-4 w-4 ml-2" />
+              </Button>
+            </div>
+          </div>
+          
+          {recentLogos?.success === false && (
+            <Card className="mb-4">
+              <CardHeader>
+                <CardTitle className="text-red-500">Error Loading Logos</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p>{recentLogos.error || "Unknown error"}</p>
+              </CardContent>
+            </Card>
+          )}
+          
+          {recentLogos?.success && logosWithUserData.length === 0 && (
+            <Card className="mb-4">
+              <CardHeader>
+                <CardTitle>No Logos Found</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p>No logos match your search criteria.</p>
+              </CardContent>
+            </Card>
+          )}
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {recentLogos?.success && logosWithUserData.map(logo => (
+              <LogoCard key={logo.id} logo={logo} />
+            ))}
+          </div>
         </TabsContent>
         
         {/* Users Tab */}
         <TabsContent value="users">
-          <Card>
-            <CardHeader>
-              <CardTitle>User Management</CardTitle>
-              <CardDescription>
-                All users registered in your application
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[600px] pr-4">
-                <div className="space-y-4">
-                  {users.map((user) => (
-                    <UserCard key={user.id} user={user} />
-                  ))}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
+          <div className="mb-4">
+            <form onSubmit={handleUserSearch} className="flex gap-2 mb-4">
+              <Input 
+                placeholder="Search by name or email"
+                value={userSearchTerm}
+                onChange={(e) => setUserSearchTerm(e.target.value)}
+                className="flex-1"
+              />
+              <Button type="submit">
+                <Search className="h-4 w-4 mr-2" />
+                Search
+              </Button>
+            </form>
+            
+            {/* Pagination Controls */}
+            <div className="flex justify-between items-center mb-4">
+              <Button 
+                variant="outline" 
+                onClick={() => handleUserPaginationChange('prev')} 
+                disabled={userPagination.offset === 0}
+              >
+                <ChevronLeft className="h-4 w-4 mr-2" /> Previous
+              </Button>
+              <div className="text-sm">
+                Showing {userPagination.offset + 1} - {Math.min(userPagination.offset + userPagination.limit, userPagination.total)} of {userPagination.total}
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={() => handleUserPaginationChange('next')} 
+                disabled={!userPagination.hasMore}
+              >
+                Next <ChevronRight className="h-4 w-4 ml-2" />
+              </Button>
+            </div>
+          </div>
+          
+          {userError && (
+            <Card className="mb-4">
+              <CardHeader>
+                <CardTitle className="text-red-500">Error Loading Users</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p>{userError}</p>
+              </CardContent>
+            </Card>
+          )}
+          
+          {isLoadingUsers ? (
+            <Card className="mb-4">
+              <CardContent className="p-8 text-center">
+                <p>Loading users...</p>
+              </CardContent>
+            </Card>
+          ) : users.length === 0 ? (
+            <Card className="mb-4">
+              <CardHeader>
+                <CardTitle>No Users Found</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p>No users match your search criteria.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {users.map(user => (
+                <UserCard key={user.id} user={user} />
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>
@@ -349,7 +448,7 @@ function StatCard({ title, value }: { title: string; value: number }) {
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-2xl font-bold">{value}</p>
+        <div className="text-2xl font-bold">{value.toLocaleString()}</div>
       </CardContent>
     </Card>
   );
@@ -357,102 +456,65 @@ function StatCard({ title, value }: { title: string; value: number }) {
 
 // Logo Card Component
 function LogoCard({ logo }: { logo: LogoWithUserData }) {
-  // Function to format base64 image data properly
-  const formatImageSrc = (imageData: string): string => {
-    // Check if the image is already a URL (starts with http or https)
-    if (imageData.startsWith('http://') || imageData.startsWith('https://')) {
-      return imageData;
-    }
-    
-    // Check if it's a base64 string without proper formatting
-    if (imageData.startsWith('["') && imageData.includes('4QC8R')) {
-      try {
-        // Try to extract the base64 data from the string format
-        const cleanedData = imageData.replace(/\[|"|\]/g, '');
-        return `data:image/png;base64,${cleanedData}`;
-      } catch (error) {
-        console.error('Error formatting image data:', error);
-        return '';
-      }
-    }
-    
-    // If it's already a properly formatted base64 string
-    if (imageData.startsWith('data:image')) {
-      return imageData;
-    }
-    
-    // Assume it's a base64 string without the data:image prefix
-    return `data:image/png;base64,${imageData}`;
-  };
-  
   return (
-    <Card className="p-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Logo Images */}
-        <div className="flex flex-wrap gap-2">
-          {logo.images && logo.images.length > 0 ? (
-            logo.images.map((image: string, index: number) => {
-              const formattedSrc = formatImageSrc(image);
-              return formattedSrc ? (
-                <div key={index} className="relative w-24 h-24 border rounded overflow-hidden">
-                  <Image 
-                    src={formattedSrc} 
-                    alt={`${logo.companyName || 'Logo'} ${index + 1}`}
-                    fill
-                    className="object-contain"
-                  />
-                </div>
-              ) : (
-                <div key={index} className="w-24 h-24 border rounded flex items-center justify-center bg-gray-100">
-                  <p className="text-xs text-gray-400">Invalid image</p>
-                </div>
-              );
-            })
-          ) : (
-            <div className="w-24 h-24 border rounded flex items-center justify-center bg-gray-100">
-              <p className="text-xs text-gray-400">No images</p>
+    <Card className="overflow-hidden">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg font-bold">{logo.companyName || "Unnamed Logo"}</CardTitle>
+        <CardDescription>
+          Created {formatDistanceToNow(new Date(logo.timestamp), { addSuffix: true })}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="grid grid-cols-2 gap-2 p-4">
+          <div>
+            {logo.images && logo.images.length > 0 ? (
+              <div className="relative h-32 w-full">
+                <Image 
+                  src={formatImageSrc(logo.images[0])}
+                  alt={logo.companyName || "Logo"}
+                  fill
+                  className="object-contain"
+                />
+              </div>
+            ) : (
+              <div className="h-32 w-full bg-gray-100 flex items-center justify-center text-gray-400">
+                No Image
+              </div>
+            )}
+          </div>
+          <div className="space-y-1 text-sm">
+            <p><span className="font-semibold">User:</span> {logo.userName || "Unknown"}</p>
+            <p><span className="font-semibold">Email:</span> {logo.userEmail || "Unknown"}</p>
+            <p><span className="font-semibold">Style:</span> {logo.style || "N/A"}</p>
+            <p><span className="font-semibold">Layout:</span> {logo.layout || "N/A"}</p>
+            <p><span className="font-semibold">Status:</span> {logo.status || "N/A"}</p>
+          </div>
+        </div>
+        
+        <div className="border-t p-4">
+          <h4 className="font-semibold mb-1">Additional Details</h4>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+            <p><span className="font-semibold">Business Type:</span> {logo.businessType || "N/A"}</p>
+            <p><span className="font-semibold">Model:</span> {logo.modelUsed || "N/A"}</p>
+            <p><span className="font-semibold">Generation Time:</span> {logo.generationTime ? `${logo.generationTime}ms` : "N/A"}</p>
+            <p><span className="font-semibold">Images:</span> {logo.images?.length || 0}</p>
+          </div>
+          
+          {logo.additionalInfo && (
+            <div className="mt-2">
+              <h4 className="font-semibold mb-1">Notes</h4>
+              <p className="text-sm">{logo.additionalInfo}</p>
             </div>
           )}
-        </div>
-        
-        {/* Logo Details */}
-        <div className="space-y-2">
-          <h3 className="font-bold">{logo.companyName || "Unnamed Logo"}</h3>
-          
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-            <p><span className="text-gray-400">Style:</span> {logo.style || "N/A"}</p>
-            <p><span className="text-gray-400">Layout:</span> {logo.layout || "N/A"}</p>
-            <p><span className="text-gray-400">Business:</span> {logo.businessType || "N/A"}</p>
-            <p><span className="text-gray-400">Status:</span> {logo.status || "N/A"}</p>
-          </div>
-          
-          <p className="text-xs text-gray-400">
-            Generated: {new Date(logo.timestamp).toLocaleString()}
-          </p>
-        </div>
-        
-        {/* User & Additional Info */}
-        <div className="space-y-2">
-          <div>
-            <h4 className="text-sm font-medium">User</h4>
-            <p className="text-sm">{logo.userEmail || "Unknown"}</p>
-            <p className="text-xs text-gray-400">ID: {logo.userId || "N/A"}</p>
-          </div>
-          
-          <div>
-            <h4 className="text-sm font-medium">Generation Details</h4>
-            <p className="text-xs"><span className="text-gray-400">Time:</span> {logo.generationTime ? `${logo.generationTime}ms` : "N/A"}</p>
-            <p className="text-xs"><span className="text-gray-400">Model:</span> {logo.modelUsed || "N/A"}</p>
-          </div>
           
           {logo.prompt && (
-            <div>
-              <h4 className="text-sm font-medium">Prompt</h4>
-              <p className="text-xs line-clamp-2">{logo.prompt}</p>
+            <div className="mt-2">
+              <h4 className="font-semibold mb-1">Prompt</h4>
+              <p className="text-sm">{logo.prompt}</p>
             </div>
           )}
         </div>
-      </div>
+      </CardContent>
     </Card>
   );
 }
@@ -460,42 +522,39 @@ function LogoCard({ logo }: { logo: LogoWithUserData }) {
 // User Card Component
 function UserCard({ user }: { user: UserData }) {
   return (
-    <Card className="p-4">
-      <div className="flex items-center gap-4">
-        {/* User Avatar */}
-        {user.imageUrl ? (
-          <div className="relative w-12 h-12 rounded-full overflow-hidden">
-            <Image 
-              src={user.imageUrl} 
-              alt={user.email}
-              fill
-              className="object-cover"
-            />
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex items-center gap-4">
+          {user.imageUrl && (
+            <div className="relative h-12 w-12 rounded-full overflow-hidden">
+              <Image 
+                src={user.imageUrl}
+                alt={`${user.firstName || ""} ${user.lastName || ""}`}
+                fill
+                className="object-cover"
+              />
+            </div>
+          )}
+          <div>
+            <CardTitle className="text-lg">
+              {user.firstName || user.lastName ? 
+                `${user.firstName || ""} ${user.lastName || ""}`.trim() : 
+                "Unnamed User"}
+            </CardTitle>
+            <CardDescription>{user.email}</CardDescription>
           </div>
-        ) : (
-          <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
-            <span className="text-gray-500 text-lg">
-              {user.firstName?.[0] || user.email[0].toUpperCase()}
-            </span>
-          </div>
-        )}
-        
-        {/* User Info */}
-        <div className="flex-1">
-          <h3 className="font-medium">
-            {user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.email}
-          </h3>
-          <p className="text-sm text-gray-400">{user.email}</p>
         </div>
-        
-        {/* User Stats */}
-        <div className="text-right">
-          <p className="text-sm">Logos: {user.totalLogosGenerated || 0}</p>
-          <p className="text-xs text-gray-400">
-            Joined: {user.createdAt.toLocaleDateString()}
-          </p>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+          <p><span className="font-semibold">User ID:</span> {user.id}</p>
+          <p><span className="font-semibold">Created:</span> {formatDistanceToNow(user.createdAt, { addSuffix: true })}</p>
+          {user.lastSignInAt && (
+            <p><span className="font-semibold">Last Sign In:</span> {formatDistanceToNow(user.lastSignInAt, { addSuffix: true })}</p>
+          )}
+          <p><span className="font-semibold">Logos Generated:</span> {user.totalLogosGenerated || 0}</p>
         </div>
-      </div>
+      </CardContent>
     </Card>
   );
 }
