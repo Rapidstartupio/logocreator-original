@@ -2,177 +2,246 @@
 
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../components/ui/table";
-import { AdminTest } from "./admin-test";
-import { useAuth } from "@clerk/nextjs";
+import Image from "next/image";
+import { Card } from "../components/ui/card";
+import { ScrollArea } from "../components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 
-export default function AdminDashboard() {
-  const [selectedTab, setSelectedTab] = useState("overview");
-  const [error, setError] = useState<string | null>(null);
-  const { isSignedIn } = useAuth();
-  
-  // Simple queries with error handling
-  const users = useQuery(api.admin.getAllUsers);
-  const recentLogos = useQuery(api.admin.getRecentLogos, { limit: 50 });
-  
-  // Check for errors in the query results
-  useEffect(() => {
-    if (users === undefined && recentLogos === undefined) {
-      setError("Failed to load admin data. Please make sure you're authenticated.");
-    } else {
-      setError(null);
-    }
-  }, [users, recentLogos]);
+interface UserStats {
+  totalUsers: number;
+  activeUsersToday: number;
+  newUsersToday: number;
+  totalLogosGenerated: number;
+}
 
-  const formatTime = (timestamp: number | undefined) => {
-    if (!timestamp) return "N/A";
-    return new Date(timestamp).toLocaleString();
-  };
+interface User {
+  id: string;
+  email: string;
+  firstName: string;
+  totalLogosGenerated: number;
+  credits: number;
+  isAdmin: boolean;
+  createdAt: number;
+  lastActive: number | null;
+}
 
-  // Show error if not signed in
-  if (!isSignedIn) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <Card className="bg-gray-900 border-gray-800">
-          <CardHeader>
-            <CardTitle className="text-red-500">Access Denied</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p>Please sign in to access the admin dashboard.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+interface Logo {
+  id: string;
+  companyName: string;
+  images: string[];
+  timestamp: number;
+  status: string;
+  style: string;
+  layout: string;
+  businessType?: string;
+  prompt?: string;
+  additionalInfo?: string;
+  generationTime?: number;
+  modelUsed?: string;
+  userEmail: string;
+}
+
+interface AdminResponse {
+  success: boolean;
+  error?: string;
+  stats?: UserStats;
+  users?: User[];
+}
+
+interface LogoResponse {
+  success: boolean;
+  error?: string;
+  data?: Logo[];
+}
+
+function ErrorDisplay({ error }: { error: string }) {
+  return (
+    <Card className="p-6 bg-red-900/20 border-red-500">
+      <h3 className="text-lg font-semibold text-red-400">Error</h3>
+      <p className="text-sm text-red-300">{error}</p>
+    </Card>
+  );
+}
+
+function LoadingDisplay() {
+  return (
+    <Card className="p-6">
+      <p className="text-center">Loading...</p>
+    </Card>
+  );
+}
+
+export default function AdminPage() {
+  const userStats = useQuery(api.admin.getUserStats) as AdminResponse;
+  const recentLogos = useQuery(api.admin.getRecentLogos) as LogoResponse;
+
+  // Handle loading states
+  if (!userStats || !recentLogos) {
+    return <LoadingDisplay />;
   }
 
-  // Show error if query failed
-  if (error) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <Card className="bg-gray-900 border-gray-800">
-          <CardHeader>
-            <CardTitle className="text-red-500">Error Loading Data</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p>{error}</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+  // Handle errors
+  if (!userStats.success) {
+    return <ErrorDisplay error={userStats.error || "Failed to load user stats"} />;
+  }
+
+  if (!recentLogos.success) {
+    return <ErrorDisplay error={recentLogos.error || "Failed to load recent logos"} />;
+  }
+
+  // Ensure we have the required data
+  if (!userStats.stats || !userStats.users || !recentLogos.data) {
+    return <ErrorDisplay error="Missing required data" />;
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="container mx-auto py-10 px-4">
-        <h1 className="text-2xl font-bold mb-4">Admin Dashboard</h1>
+    <div className="container mx-auto py-10">
+      <h1 className="text-4xl font-bold mb-8">Admin Dashboard</h1>
+      
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="logos">Recent Logos</TabsTrigger>
+        </TabsList>
         
-        {/* Connection Test Component */}
-        <div className="mb-8">
-          <AdminTest />
-        </div>
-
-        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-4">
-          <TabsList className="bg-gray-900">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="users">Users</TabsTrigger>
-            <TabsTrigger value="logos">Recent Logos</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview">
-            <Card className="bg-gray-900 border-gray-800">
-              <CardHeader>
-                <CardTitle>Overview</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="p-4 rounded-lg bg-gray-800">
-                    <h3 className="font-semibold text-gray-400">Total Users</h3>
-                    <p className="text-3xl font-bold">{users?.length || 0}</p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-gray-800">
-                    <h3 className="font-semibold text-gray-400">Recent Logos</h3>
-                    <p className="text-3xl font-bold">{recentLogos?.length || 0}</p>
-                  </div>
-                </div>
-              </CardContent>
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-gray-400">Total Users</h3>
+              <p className="text-3xl font-bold">{userStats.stats.totalUsers}</p>
             </Card>
-          </TabsContent>
-
-          <TabsContent value="users">
-            <Card className="bg-gray-900 border-gray-800">
-              <CardHeader>
-                <CardTitle>Users</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-lg overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-gray-800 hover:bg-gray-800">
-                        <TableHead className="text-gray-400">Email</TableHead>
-                        <TableHead className="text-gray-400">User ID</TableHead>
-                        <TableHead className="text-gray-400">Total Logos</TableHead>
-                        <TableHead className="text-gray-400">Last Active</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {users?.map((user) => (
-                        <TableRow key={user._id} className="hover:bg-gray-800">
-                          <TableCell>{user.email || "N/A"}</TableCell>
-                          <TableCell className="font-mono text-sm">{user.userId || "N/A"}</TableCell>
-                          <TableCell>{user.totalLogosGenerated || 0}</TableCell>
-                          <TableCell>{formatTime(user.lastActive)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
+            
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-gray-400">Active Today</h3>
+              <p className="text-3xl font-bold">{userStats.stats.activeUsersToday}</p>
             </Card>
-          </TabsContent>
-
-          <TabsContent value="logos">
-            <Card className="bg-gray-900 border-gray-800">
-              <CardHeader>
-                <CardTitle>Recent Logos</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-lg overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-gray-800 hover:bg-gray-800">
-                        <TableHead className="text-gray-400">Company</TableHead>
-                        <TableHead className="text-gray-400">User ID</TableHead>
-                        <TableHead className="text-gray-400">Style</TableHead>
-                        <TableHead className="text-gray-400">Created</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {recentLogos?.map((logo) => (
-                        <TableRow key={logo._id} className="hover:bg-gray-800">
-                          <TableCell>{logo.companyName || "N/A"}</TableCell>
-                          <TableCell className="font-mono text-sm">{logo.userId || "N/A"}</TableCell>
-                          <TableCell>{logo.style || "N/A"}</TableCell>
-                          <TableCell>{formatTime(logo.timestamp)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
+            
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-gray-400">New Today</h3>
+              <p className="text-3xl font-bold">{userStats.stats.newUsersToday}</p>
             </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
+            
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-gray-400">Total Logos</h3>
+              <p className="text-3xl font-bold">{userStats.stats.totalLogosGenerated}</p>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Users Tab */}
+        <TabsContent value="users" className="space-y-4">
+          <Card className="p-4">
+            <h2 className="text-2xl font-semibold mb-4">User List</h2>
+            <ScrollArea className="h-[600px] w-full rounded-md border p-4">
+              <div className="space-y-4">
+                {userStats.users.map((user) => (
+                  <Card key={user.id} className="p-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* User Basic Info */}
+                      <div>
+                        <h3 className="text-lg font-semibold">{user.email}</h3>
+                        <p className="text-sm text-gray-400">
+                          {user.firstName ? `Business Type: ${user.firstName}` : 'No business type'}
+                        </p>
+                        <p className="text-sm">ID: {user.id}</p>
+                      </div>
+
+                      {/* User Stats */}
+                      <div className="text-sm grid grid-cols-2 gap-2">
+                        <div>Logos Generated:</div>
+                        <div>{user.totalLogosGenerated}</div>
+                        <div>Credits:</div>
+                        <div>{user.credits}</div>
+                        <div>Admin:</div>
+                        <div>{user.isAdmin ? "Yes" : "No"}</div>
+                        <div>Created:</div>
+                        <div>{new Date(user.createdAt).toLocaleDateString()}</div>
+                        <div>Last Active:</div>
+                        <div>
+                          {user.lastActive
+                            ? new Date(user.lastActive).toLocaleString()
+                            : "Never"}
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </ScrollArea>
+          </Card>
+        </TabsContent>
+
+        {/* Logos Tab */}
+        <TabsContent value="logos" className="space-y-4">
+          <Card className="p-4">
+            <h2 className="text-2xl font-semibold mb-4">Recent Logos</h2>
+            <ScrollArea className="h-[600px] w-full rounded-md border p-4">
+              <div className="space-y-8">
+                {recentLogos.data.map((logo) => (
+                  <Card key={logo.id} className="p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Logo Preview */}
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold">{logo.companyName}</h3>
+                        {logo.images && logo.images.length > 0 && (
+                          <div className="relative w-full aspect-square">
+                            <Image
+                              src={logo.images[0]}
+                              alt={`Logo for ${logo.companyName}`}
+                              fill
+                              className="object-contain"
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Logo Details */}
+                      <div className="text-sm grid grid-cols-2 gap-2">
+                        <div>Created By:</div>
+                        <div>{logo.userEmail}</div>
+                        <div>Status:</div>
+                        <div>{logo.status}</div>
+                        <div>Style:</div>
+                        <div>{logo.style}</div>
+                        <div>Layout:</div>
+                        <div>{logo.layout}</div>
+                        <div>Business Type:</div>
+                        <div>{logo.businessType || "Not specified"}</div>
+                        <div>Created:</div>
+                        <div>{new Date(logo.timestamp).toLocaleString()}</div>
+                        <div>Generation Time:</div>
+                        <div>{logo.generationTime ? `${logo.generationTime}ms` : "Unknown"}</div>
+                        <div>Model:</div>
+                        <div>{logo.modelUsed || "Not specified"}</div>
+                      </div>
+                    </div>
+
+                    {/* Additional Details */}
+                    {(logo.prompt || logo.additionalInfo) && (
+                      <div className="mt-4 pt-4 border-t border-gray-800">
+                        {logo.prompt && (
+                          <div className="mb-2">
+                            <div className="font-semibold">Prompt:</div>
+                            <div className="text-sm text-gray-400">{logo.prompt}</div>
+                          </div>
+                        )}
+                        {logo.additionalInfo && (
+                          <div>
+                            <div className="font-semibold">Notes:</div>
+                            <div className="text-sm text-gray-400">{logo.additionalInfo}</div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            </ScrollArea>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
-} 
+}

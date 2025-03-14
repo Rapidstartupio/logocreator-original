@@ -1,11 +1,20 @@
-export default {
+const authConfig = {
   providers: [
     {
-      // During development, if env var isn't available, use the production domain
-      domain: process.env.NEXT_PUBLIC_CLERK_DOMAIN || "verified-flea-40.clerk.accounts.dev",
+      domain: process.env.NEXT_PUBLIC_CLERK_DOMAIN || "https://verified-flea-40.clerk.accounts.dev",
       applicationID: "convex",
     },
   ],
-  // Add roles configuration
+  // Add roles configuration with proper access control
   roles: ["admin"],
-}; 
+  // Configure admin access
+  rules: [
+    {
+      resource: "admin",
+      role: "admin",
+      public: false,
+    },
+  ],
+};
+
+export default authConfig;

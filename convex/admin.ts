@@ -1,342 +1,363 @@
-import { mutation, query } from "./_generated/server";
+import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { MutationCtx, QueryCtx } from "./_generated/server";
+import { QueryCtx } from "./_generated/server";
 
-// Helper function to check if user is authenticated (not requiring admin)
-async function checkIsAuthenticated(ctx: QueryCtx | MutationCtx) {
-  const identity = await ctx.auth.getUserIdentity();
-  if (!identity) {
-    throw new Error("Authentication required to access admin functions");
-  }
-  
-  return identity;
+// Helper function to log debug info with type safety
+function logDebug(context: string, data: Record<string, unknown>) {
+  console.log(`[DEBUG][${context}]`, JSON.stringify({
+    context,
+    timestamp: Date.now(),
+    data
+  }, null, 2));
 }
 
-// Direct queries with auth checks
-export const getAllUsers = query({
-  handler: async (ctx) => {
-    // Only check for authentication, not admin status
-    try {
-      await checkIsAuthenticated(ctx);
-      
-      console.log("Fetching all users from userAnalytics...");
-      const users = await ctx.db
-        .query("userAnalytics")
-        .collect();
+// Helper function to ensure user is admin
+async function ensureAdminUser(ctx: QueryCtx) {
+  const identity = await ctx.auth.getUserIdentity();
+  logDebug("ensureAdminUser.identity", { identity });
 
-      // Get logo counts for each user
-      const usersWithLogoCounts = await Promise.all(
-        users.map(async (user) => {
-          try {
-            // Get logo count for user
-            const logoCount = await ctx.db
-              .query("logoHistory")
-              .withIndex("by_user")
-              .filter(q => q.eq(q.field("userId"), user.userId))
-              .collect()
-              .then(logos => logos.length)
-              .catch(err => {
-                console.error("Error fetching logo count for user:", user.userId, err);
-                return 0;
-              });
+  if (!identity) {
+    throw new Error("Authentication required");
+  }
 
-            // Return user data with safe fallbacks for optional fields
-            return {
-              _id: user._id,
-              _creationTime: user._creationTime,
-              userId: user.userId,
-              email: user.email,
-              totalLogosGenerated: user.totalLogosGenerated,
-              lastActive: user.lastActive,
-              lastCompanyName: user.lastCompanyName,
-              lastBusinessType: user.lastBusinessType || "",
-              actualLogoCount: logoCount,
-              credits: user.credits || 0,
-              isAdmin: user.isAdmin || false
-            };
-          } catch (err) {
-            console.error("Error processing user:", user._id, err);
-            return null;
-          }
-        })
-      );
-      
-      // Filter out any null results from errors
-      const validUsers = usersWithLogoCounts.filter((user): user is NonNullable<typeof user> => user !== null);
-      console.log(`Found ${validUsers.length} valid users in userAnalytics`);
-      return validUsers;
-    } catch (err) {
-      console.error("Error in getAllUsers:", err);
-      // Return empty array instead of throwing to prevent client-side crashes
-      return [];
-    }
-  },
-});
+  const user = await ctx.db
+    .query("userAnalytics")
+    .filter(q => q.eq(q.field("userId"), identity.subject))
+    .first();
 
-export const getRecentLogos = query({
+  logDebug("ensureAdminUser.user", { user });
+
+  if (!user?.isAdmin) {
+    throw new Error("Admin access required");
+  }
+
+  return user;
+}
+
+// Initialize a new user in userAnalytics
+export const initializeUser = mutation({
   args: {
-    limit: v.optional(v.number()),
+    userId: v.string(),
+    email: v.string(),
+    isAdmin: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    try {
-      // Only check for authentication, not admin status
-      await checkIsAuthenticated(ctx);
-      
-      console.log("Fetching logos from logoHistory...");
-      const limit = args.limit || 50; // Default to 50 if not provided
-      const logos = await ctx.db
-        .query("logoHistory")
-        .withIndex("by_timestamp")
-        .order("desc")
-        .take(limit);
+    logDebug("initializeUser.args", args);
 
-      // Map logos to ensure all required fields are present
-      const processedLogos = logos.map(logo => ({
-        _id: logo._id,
-        _creationTime: logo._creationTime,
-        userId: logo.userId || "",
-        companyName: logo.companyName,
-        layout: logo.layout,
-        style: logo.style,
-        primaryColor: logo.primaryColor,
-        backgroundColor: logo.backgroundColor,
-        additionalInfo: logo.additionalInfo || "",
-        images: logo.images,
-        timestamp: logo.timestamp,
-        businessType: logo.businessType || "",
-        prompt: logo.prompt || "",
-        styleDetails: logo.styleDetails || "",
-        layoutDetails: logo.layoutDetails || "",
-        numberOfImages: logo.numberOfImages || 1,
-        isDemo: logo.isDemo || false,
-        generationTime: logo.generationTime || 0,
-        modelUsed: logo.modelUsed || "",
-        status: logo.status || "success",
-        errorMessage: logo.errorMessage || ""
-      }));
+    // Check if user already exists
+    const existingUser = await ctx.db
+      .query("userAnalytics")
+      .filter(q => q.eq(q.field("userId"), args.userId))
+      .first();
+    
+    logDebug("initializeUser.existingUser", { existingUser });
 
-      console.log(`Found ${processedLogos.length} logos in logoHistory`);
-      return processedLogos;
-    } catch (err) {
-      console.error("Error in getRecentLogos:", err);
-      return []; // Return empty array instead of crashing
+    if (existingUser) {
+      return existingUser._id;
     }
-  },
+
+    // Create new user with default values
+    const newUser = {
+      userId: args.userId,
+      email: args.email,
+      totalLogosGenerated: 0,
+      lastActive: Date.now(),
+      lastCompanyName: "",
+      lastBusinessType: "",
+      isAdmin: args.isAdmin || false,
+      credits: 100, // Default credits
+    };
+
+    logDebug("initializeUser.newUser", { newUser });
+    const id = await ctx.db.insert("userAnalytics", newUser);
+    logDebug("initializeUser.result", { id });
+    return id;
+  }
 });
 
-export const getDailyStats = query({
+// Get all user statistics
+export const getUserStats = query({
   handler: async (ctx) => {
     try {
-      await checkIsAuthenticated(ctx);
+      logDebug("getUserStats.start", { timestamp: Date.now() });
       
-      const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-      
-      const activeUsers = await ctx.db
-        .query("userAnalytics")
-        .withIndex("by_lastActive")
-        .filter(q => q.gte(q.field("lastActive"), oneDayAgo))
-        .collect();
+      // Ensure user is admin
+      await ensureAdminUser(ctx);
 
-      const recentLogos = await ctx.db
+      // Get all users
+      const users = await ctx.db.query("userAnalytics").collect();
+      logDebug("getUserStats.allUsers", { count: users.length });
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayTimestamp = today.getTime();
+
+      // Calculate stats
+      const stats = {
+        totalUsers: users.length,
+        activeUsersToday: users.filter(u => u.lastActive > todayTimestamp).length,
+        newUsersToday: users.filter(u => u._creationTime > todayTimestamp).length,
+        totalLogosGenerated: users.reduce((sum, u) => sum + (u.totalLogosGenerated || 0), 0)
+      };
+
+      logDebug("getUserStats.stats", stats);
+
+      // Map users to simplified format
+      const mappedUsers = users.map(u => ({
+        id: u.userId,
+        email: u.email,
+        firstName: u.lastBusinessType || "",
+        totalLogosGenerated: u.totalLogosGenerated || 0,
+        credits: u.credits || 0,
+        isAdmin: u.isAdmin || false,
+        createdAt: u._creationTime,
+        lastActive: u.lastActive || null
+      }));
+
+      logDebug("getUserStats.mappedUsers", { count: mappedUsers.length });
+
+      return {
+        success: true,
+        stats,
+        users: mappedUsers
+      };
+    } catch (error) {
+      console.error("[getUserStats] Error:", error);
+      logDebug("getUserStats.error", { error });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+});
+
+// Get recent logos with user data
+export const getRecentLogos = query({
+  handler: async (ctx) => {
+    try {
+      logDebug("getRecentLogos.start", { timestamp: Date.now() });
+      
+      // Ensure user is admin
+      await ensureAdminUser(ctx);
+
+      // Get recent logos
+      const logos = await ctx.db
         .query("logoHistory")
-        .withIndex("by_timestamp")
-        .filter(q => q.gte(q.field("timestamp"), oneDayAgo))
+        .order("desc")
+        .take(50);
+
+      logDebug("getRecentLogos.logos", { count: logos.length });
+
+      // Get user data for each logo
+      const userIds = Array.from(new Set(logos.map(logo => logo.userId).filter(Boolean)));
+      logDebug("getRecentLogos.userIds", { count: userIds.length, ids: userIds });
+
+      const users = await Promise.all(
+        userIds.map(id =>
+          ctx.db
+            .query("userAnalytics")
+            .filter(q => q.eq(q.field("userId"), id))
+            .first()
+        )
+      );
+
+      logDebug("getRecentLogos.users", { 
+        count: users.length,
+        nullCount: users.filter(u => u === null).length 
+      });
+
+      // Create user lookup map
+      const userMap = new Map(
+        users
+          .filter((u): u is NonNullable<typeof u> => u !== null)
+          .map(u => [u.userId, u])
+      );
+
+      logDebug("getRecentLogos.userMap", { size: userMap.size });
+
+      // Map logos with user data
+      const data = logos.map(logo => ({
+        id: logo._id,
+        companyName: logo.companyName,
+        images: logo.images,
+        timestamp: logo._creationTime,
+        status: logo.status || "unknown",
+        style: logo.style,
+        layout: logo.layout,
+        businessType: logo.businessType,
+        prompt: logo.prompt,
+        additionalInfo: logo.additionalInfo,
+        generationTime: logo.generationTime,
+        modelUsed: logo.modelUsed,
+        userEmail: userMap.get(logo.userId || "")?.email || "Unknown"
+      }));
+
+      logDebug("getRecentLogos.mappedData", { count: data.length });
+
+      return { success: true, data };
+    } catch (error) {
+      console.error("[getRecentLogos] Error:", error);
+      logDebug("getRecentLogos.error", { error });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+});
+
+// Get all users from userAnalytics table
+export const getAllUsers = query({
+  handler: async (ctx) => {
+    try {
+      console.log("[getAllUsers] Starting query execution");
+      
+      // Check authentication
+      const identity = await ctx.auth.getUserIdentity();
+      if (!identity) {
+        return {
+          success: false,
+          error: "Authentication required",
+          data: [],
+          identity: null
+        };
+      }
+
+      // Ensure user is admin
+      const adminCheck = await ensureAdminUser(ctx);
+      if (!adminCheck) {
+        return {
+          success: false,
+          error: "Admin access required",
+          data: [],
+          identity: null
+        };
+      }
+
+      // Query userAnalytics table
+      const users = await ctx.db
+        .query("userAnalytics")
         .collect();
 
       return {
-        activeUsers: activeUsers.length,
-        totalLogos: recentLogos.length,
-        timestamp: Date.now()
+        success: true,
+        data: users,
+        identity: {
+          subject: identity.subject,
+          tokenIdentifier: identity.tokenIdentifier
+        }
       };
     } catch (err) {
-      console.error("Error in getDailyStats:", err);
-      return { activeUsers: 0, totalLogos: 0, timestamp: Date.now() };
+      const error = err instanceof Error ? err : new Error(String(err));
+      console.error("[getAllUsers] Error:", error);
+      return {
+        success: false,
+        error: `User query failed: ${error.message}`,
+        data: [],
+        identity: null
+      };
     }
-  },
+  }
 });
 
-// Simplified sync that just adds users without checking anything
-export const syncClerkUsers = mutation({
-  args: {
-    usersData: v.array(
-      v.object({
-        userId: v.string(),
-        email: v.string(),
-        isAdmin: v.boolean(),
-      })
-    ),
-    adminKey: v.string(),
-  },
-  handler: async (ctx, args) => {
-    console.log(`Syncing ${args.usersData.length} users from Clerk...`);
-    try {
-      let userCount = 0;
-      for (const userData of args.usersData) {
-        const { userId, email } = userData;
-        try {
-          await ctx.db.insert("userAnalytics", {
-            userId,
-            email,
-            totalLogosGenerated: 0,
-            lastActive: Date.now(),
-            lastCompanyName: "Unknown",
-            lastBusinessType: "Unknown",
-          });
-          userCount++;
-        } catch {
-          // Ignore duplicate errors
-        }
-      }
-      console.log(`Successfully synced ${userCount} new users`);
-      return { success: true, userCount };
-    } catch (error) {
-      console.error("Error syncing users:", error);
-      return { success: false, error: String(error) };
-    }
-  },
-});
-
-export const getUsersWithLogoData = query({
+// Simplest possible test query
+export const testQuery = query({
   handler: async (ctx) => {
     try {
-      await checkIsAuthenticated(ctx);
+      // Log deployment info
+      console.log("[testQuery] Starting query execution");
+      console.log("[testQuery] Environment:", process.env.NODE_ENV);
       
-      console.log("Fetching users with logo data...");
-      const users = await ctx.db
-        .query("userAnalytics")
-        .collect();
+      // Check authentication
+      console.log("[testQuery] Checking authentication...");
+      const identity = await ctx.auth.getUserIdentity();
+      console.log("[testQuery] Auth result:", identity ? "Authenticated" : "Not authenticated");
       
-      console.log(`Found ${users.length} users, fetching their logos...`);
-      
-      const userLogos = await Promise.all(
-        users.map(async (user) => {
-          const lastLogo = await ctx.db
-            .query("logoHistory")
-            .withIndex("by_user")
-            .filter(q => q.eq("userId", user.userId))
-            .order("desc")
-            .first();
-          
-          return {
-            ...user,
-            lastLogoTimestamp: lastLogo?.timestamp || null
-          };
-        })
-      );
-      
-      console.log(`Completed fetching logo data for ${userLogos.length} users`);
-      return userLogos;
-    } catch (err) {
-      console.error("Error in getUsersWithLogoData:", err);
-      return [];
-    }
-  },
-});
-
-export const createSampleLogo = mutation({
-  args: {
-    userId: v.string(),
-    companyName: v.string(),
-    businessType: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const styles = ["modern", "minimal", "classic", "bold", "playful"];
-    const layouts = ["centered", "minimal", "dynamic", "balanced", "geometric"];
-    const colors = ["#4B5563", "#1E40AF", "#047857", "#B91C1C", "#6D28D9"];
-    const bgColors = ["#F9FAFB", "#EFF6FF", "#ECFDF5", "#FEF2F2", "#F5F3FF"];
-
-    const createPlaceholderImage = () => {
-      return "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
-    };
-
-    const now = Date.now();
-    const oneDay = 24 * 60 * 60 * 1000;
-    const logoPromises = Array.from({ length: 5 }).map(async (_, index) => {
-      const timestamp = now - (index * oneDay);
-      const style = styles[index % styles.length];
-      const layout = layouts[index % layouts.length];
-      const color = colors[index % colors.length];
-      const bgColor = bgColors[index % bgColors.length];
-
-      return await ctx.db.insert("logoHistory", {
-        userId: args.userId,
-        companyName: `${args.companyName} - ${style}`,
-        layout,
-        style,
-        primaryColor: color,
-        backgroundColor: bgColor,
-        additionalInfo: `Sample logo ${index + 1} created for testing`,
-        images: [createPlaceholderImage(), createPlaceholderImage()],
-        timestamp
-      });
-    });
-
-    const logoIds = await Promise.all(logoPromises);
-
-    const existingAnalytics = await ctx.db
-      .query("userAnalytics")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .first();
-
-    if (existingAnalytics) {
-      await ctx.db.patch(existingAnalytics._id, {
-        totalLogosGenerated: existingAnalytics.totalLogosGenerated + logoPromises.length,
-        lastActive: now,
-        lastCompanyName: args.companyName,
-        lastBusinessType: args.businessType || existingAnalytics.lastBusinessType,
-      });
-    }
-
-    return { success: true, logoIds };
-  },
-});
-
-export const getAllTables = query({
-  handler: async () => {
-    return ["logoHistory", "userAnalytics"];
-  },
-});
-
-export const getAllTableData = query({
-  args: {
-    tableName: v.string(),
-    limit: v.optional(v.number()),
-  },
-  handler: async (ctx, args) => {
-    try {
-      await checkIsAuthenticated(ctx);
-      
-      const limit = args.limit || 100;
-      
-      if (args.tableName === "logoHistory") {
-        return await ctx.db
-          .query("logoHistory")
-          .withIndex("by_timestamp")
-          .order("desc")
-          .take(limit);
-      } else if (args.tableName === "userAnalytics") {
-        return await ctx.db
-          .query("userAnalytics")
-          .withIndex("by_lastActive")
-          .order("desc")
-          .take(limit);
+      if (!identity) {
+        return {
+          success: false,
+          error: "Authentication required",
+          message: "",
+          timestamp: Date.now(),
+          identity: null
+        };
       }
-      
-      throw new Error(`Unknown table: ${args.tableName}`);
+
+      return {
+        success: true,
+        message: "Basic query works",
+        timestamp: Date.now(),
+        identity: {
+          subject: identity.subject,
+          tokenIdentifier: identity.tokenIdentifier
+        }
+      };
     } catch (err) {
-      console.error("Error in getAllTableData:", err);
-      return [];
+      const error = err instanceof Error ? err : new Error(String(err));
+      console.error("[testQuery] Error type:", error.constructor.name);
+      console.error("[testQuery] Error message:", error.message);
+      console.error("[testQuery] Error stack:", error.stack);
+      return {
+        success: false,
+        error: `Query failed: ${error.message}`,
+        message: "",
+        timestamp: Date.now(),
+        identity: null
+      };
     }
-  },
+  }
 });
 
-// Simple test that always returns success
-export const testAdminAccess = query({
-  handler: async () => {
-    return {
-      success: true,
-      adminKeyPresent: true,
-      timestamp: Date.now()
-    };
-  },
+// Simple database test
+export const testDbAccess = query({
+  handler: async (ctx) => {
+    try {
+      console.log("[testDbAccess] Starting database test");
+      
+      // Check authentication
+      console.log("[testDbAccess] Checking authentication...");
+      const identity = await ctx.auth.getUserIdentity();
+      console.log("[testDbAccess] Auth result:", identity ? "Authenticated" : "Not authenticated");
+      
+      if (!identity) {
+        return {
+          success: false,
+          error: "Authentication required",
+          hasLogo: false,
+          timestamp: Date.now(),
+          identity: null
+        };
+      }
+
+      // Try to read one record from logoHistory
+      console.log("[testDbAccess] Attempting to query logoHistory table...");
+      const logo = await ctx.db
+        .query("logoHistory")
+        .first();
+      console.log("[testDbAccess] Query result:", logo ? "Found logo" : "No logos found");
+      
+      return {
+        success: true,
+        hasLogo: logo !== null,
+        timestamp: Date.now(),
+        identity: {
+          subject: identity.subject,
+          tokenIdentifier: identity.tokenIdentifier
+        }
+      };
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      console.error("[testDbAccess] Error type:", error.constructor.name);
+      console.error("[testDbAccess] Error message:", error.message);
+      console.error("[testDbAccess] Error stack:", error.stack);
+      return {
+        success: false,
+        error: `Database test failed: ${error.message}`,
+        hasLogo: false,
+        timestamp: Date.now(),
+        identity: null
+      };
+    }
+  }
 });
