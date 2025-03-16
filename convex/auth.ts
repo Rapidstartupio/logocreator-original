@@ -22,7 +22,7 @@ export const transferDemoLogos = mutation({
       ))
       .collect();
 
-    // If no demo logos found, try to find any recent logos without a userId
+    // If no demo logos found with isDemo flag, try to find any recent logos without a userId
     if (demoLogos.length === 0) {
       demoLogos = await ctx.db
         .query("logoHistory")
@@ -37,12 +37,10 @@ export const transferDemoLogos = mutation({
         .collect();
     }
 
-    // If still no logos found, try to find any logos from the last 24 hours
+    // If no logos found to transfer, return early
     if (demoLogos.length === 0) {
-      demoLogos = await ctx.db
-        .query("logoHistory")
-        .filter(q => q.gt(q.field("timestamp"), twentyFourHoursAgo))
-        .take(5); // Limit to 5 logos
+      console.log('No demo logos found to transfer');
+      return 0;
     }
 
     console.log(`Found ${demoLogos.length} logos to transfer`);

@@ -161,9 +161,7 @@ export default function Page() {
         
         // Format and set images
         if (data.generatedImages && Array.isArray(data.generatedImages)) {
-          // Process images to ensure they're properly formatted
           const formattedImages = data.generatedImages.map((img: string) => {
-            // If the image already has the data:image prefix, extract just the base64 part
             if (img.startsWith('data:image')) {
               const base64Data = img.split(',')[1];
               return base64Data || img;
@@ -184,9 +182,10 @@ export default function Page() {
       }
     }
 
-    // Add effect to handle demo logo transfer
+    // Add effect to handle demo logo transfer only if there are demo logos
     const handleDemoTransfer = async () => {
-      if (isSignedIn && user && !hasTransferredDemos) {
+      // Only attempt to transfer if user is signed in and there are demo attempts in localStorage
+      if (isSignedIn && user && localStorage.getItem('demoAttempts') !== null && !hasTransferredDemos) {
         try {
           await transferDemoLogos({
             userId: user.id,

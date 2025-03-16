@@ -49,15 +49,17 @@ export async function POST(req: Request) {
 
   // Get the user session
   const session = await auth();
-  const userId = session.userId;
+  const userId = session?.userId;
   if (!userId) {
-    return new Response("Unauthorized", { status: 401 });
+    console.error('No user session found');
+    return Response.json({ error: 'Authentication required' }, { status: 401, headers });
   }
 
   // Get the user details
   const user = await currentUser();
   if (!user) {
-    return new Response("User not found", { status: 404 });
+    console.error('User not found');
+    return Response.json({ error: 'User not found' }, { status: 404, headers });
   }
 
   const json = await req.json();
@@ -76,22 +78,12 @@ export async function POST(req: Request) {
     })
     .parse(json);
 
-  // Initialize Convex client
-  const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL || "");
-
-  // Add rate limiting if Upstash API keys are set & no BYOK, otherwise skip
-  if (process.env.UPSTASH_REDIS_REST_URL && !data.userAPIKey) {
+  // Make rate limiting optional
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN && !data.userAPIKey) {
     try {
-      // Validate Redis URL format
-      const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
-      if (!redisUrl.startsWith('https://') || !redisUrl.includes('.upstash.io')) {
-        console.error('Invalid Redis URL format:', redisUrl);
-        throw new Error('Invalid Redis configuration');
-      }
-
       const redis = new Redis({
-        url: redisUrl,
-        token: process.env.UPSTASH_REDIS_REST_TOKEN || "",
+        url: process.env.UPSTASH_REDIS_REST_URL,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN,
       });
 
       const key = `rate_limit:${userId}`;
@@ -104,19 +96,17 @@ export async function POST(req: Request) {
       }
 
       if (count > limit) {
-        return new Response(
-          "You have reached your daily limit. Please try again tomorrow.",
-          {
-            status: 429,
-            headers: { "Content-Type": "text/plain" },
-          }
+        return Response.json(
+          { error: "You have reached your daily limit. Please try again tomorrow." },
+          { status: 429, headers }
         );
       }
     } catch (error) {
-      console.error('Redis error:', error);
-      // Continue without rate limiting if Redis fails
-      console.warn('Continuing without rate limiting due to Redis error');
+      // Log Redis error but continue without rate limiting
+      console.warn('Redis rate limiting disabled:', error);
     }
+  } else {
+    console.log('Skipping rate limiting: Redis not configured or user has API key');
   }
 
   // Initialize Together client with API key
@@ -241,8 +231,15 @@ Primary color is ${data.selectedPrimaryColor.toLowerCase()} and background color
       });
     }
 
-    // Update user analytics
+    // Update user analytics and save logo history with proper error handling
     try {
+      const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+      if (!convexUrl) {
+        console.error('Convex URL is not configured');
+        throw new Error('API configuration error');
+      }
+      
+      const convex = new ConvexHttpClient(convexUrl);
       await convex.mutation(api.userAnalytics.updateUserAnalytics, {
         email: user.emailAddresses[0].emailAddress,
         companyName: data.companyName,
@@ -259,7 +256,6 @@ Primary color is ${data.selectedPrimaryColor.toLowerCase()} and background color
         backgroundColor: data.selectedBackgroundColor,
         additionalInfo: data.additionalInfo,
         images: images,
-        // New fields
         businessType: data.additionalInfo,
         prompt: prompt,
         styleDetails: styleLookup[data.selectedStyle],
@@ -272,7 +268,8 @@ Primary color is ${data.selectedPrimaryColor.toLowerCase()} and background color
       });
     } catch (error) {
       console.error("Error updating Convex:", error);
-      // Continue execution even if Convex update fails
+      // Log the error but continue - we don't want to fail the whole request if just the save fails
+      // The user still gets their generated image
     }
 
     return Response.json(
@@ -290,6 +287,13 @@ Primary color is ${data.selectedPrimaryColor.toLowerCase()} and background color
     
     // Save failed attempt to logo history
     try {
+      const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+      if (!convexUrl) {
+        console.error('Convex URL is not configured');
+        throw new Error('API configuration error');
+      }
+      
+      const convex = new ConvexHttpClient(convexUrl);
       await convex.mutation(api.logoHistory.save, {
         companyName: data.companyName,
         layout: data.selectedLayout,
