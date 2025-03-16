@@ -1,8 +1,6 @@
 import Together from "together-ai";
 import { z } from "zod";
 import dedent from "dedent";
-import { ConvexHttpClient } from "convex/browser";
-import { api } from "@/convex/_generated/api";
 
 // Move the function outside the POST handler
 const generateSingleImage = async (client: Together, prompt: string) => {
@@ -112,68 +110,11 @@ Primary color is ${data.selectedPrimaryColor.toLowerCase()} and background color
 
     // For demo, limit to 1 image regardless of request
     try {
-      const startTime = Date.now();
       const image = await generateSingleImage(client, prompt);
-
-      // Initialize Convex client
-      const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL || "");
-
-      // Save demo logo history
-      try {
-        await convex.mutation(api.logoHistory.save, {
-          companyName: data.companyName,
-          layout: data.selectedLayout,
-          style: data.selectedStyle,
-          primaryColor: data.selectedPrimaryColor,
-          backgroundColor: data.selectedBackgroundColor,
-          additionalInfo: data.additionalInfo,
-          images: [image],
-          businessType: data.additionalInfo,
-          prompt: prompt,
-          styleDetails: styleLookup[data.selectedStyle],
-          layoutDetails: layoutLookup[data.selectedLayout],
-          numberOfImages: 1, // Demo always generates 1 image
-          isDemo: true,
-          generationTime: Date.now() - startTime,
-          modelUsed: "black-forest-labs/FLUX.1.1-pro",
-          status: "success"
-        });
-      } catch (convexError) {
-        console.error('Error saving to Convex:', convexError);
-        // Continue even if saving to Convex fails
-      }
-
       return Response.json({ images: [image] }, { headers });
     } catch (error) {
       console.error('Error generating demo logo:', error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-
-      // Save failed demo attempt
-      try {
-        const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL || "");
-        await convex.mutation(api.logoHistory.save, {
-          companyName: data.companyName,
-          layout: data.selectedLayout,
-          style: data.selectedStyle,
-          primaryColor: data.selectedPrimaryColor,
-          backgroundColor: data.selectedBackgroundColor,
-          additionalInfo: data.additionalInfo,
-          images: [],
-          businessType: data.additionalInfo,
-          prompt: prompt,
-          styleDetails: styleLookup[data.selectedStyle],
-          layoutDetails: layoutLookup[data.selectedLayout],
-          numberOfImages: 1,
-          isDemo: true,
-          generationTime: 0,
-          modelUsed: "black-forest-labs/FLUX.1.1-pro",
-          status: "failed",
-          errorMessage: errorMessage
-        });
-      } catch (convexError) {
-        console.error('Error saving failed demo attempt to Convex:', convexError);
-      }
-
       return Response.json(
         { error: errorMessage },
         { status: 500, headers }
