@@ -130,6 +130,13 @@ export default function Page() {
   };
 
   useEffect(() => {
+    // Check if we've already attempted to transfer demos for this user
+    const hasAttemptedTransfer = localStorage.getItem(`hasAttemptedTransfer_${user?.id}`);
+    if (hasAttemptedTransfer) {
+      setHasTransferredDemos(true);
+      return;
+    }
+
     // Initialize demo attempts if not already set
     const attempts = localStorage.getItem('demoAttempts');
     if (attempts === null) {
@@ -139,12 +146,37 @@ export default function Page() {
       setDemoAttemptsLeft(parseInt(attempts));
     }
 
-    // Check if user has generated logos before
-    const hasGeneratedBefore = localStorage.getItem('hasGeneratedLogo');
-    if (hasGeneratedBefore) {
-      setIsFirstGeneration(false);
+    // Only attempt to transfer if user is signed in and either:
+    // 1. There are demo attempts in localStorage (indicating they used the demo)
+    // 2. The demoAttempts value is less than 5 (indicating they used some attempts)
+    const handleDemoTransfer = async () => {
+      if (isSignedIn && user && !hasTransferredDemos && 
+          (localStorage.getItem('demoAttempts') !== null || demoAttemptsLeft < 5)) {
+        try {
+          await transferDemoLogos({
+            userId: user.id,
+            email: user.primaryEmailAddress?.emailAddress || "",
+          });
+          
+          // Mark as transferred regardless of result to prevent future attempts
+          localStorage.setItem(`hasAttemptedTransfer_${user.id}`, 'true');
+          setHasTransferredDemos(true);
+          localStorage.removeItem('demoAttempts'); // Clear demo attempts after transfer
+        } catch (error) {
+          // Log error but don't prevent marking as transferred
+          console.error('Error transferring demo logos:', error);
+          localStorage.setItem(`hasAttemptedTransfer_${user.id}`, 'true');
+          setHasTransferredDemos(true);
+        }
+      }
+    };
+
+    if (isSignedIn && user) {
+      handleDemoTransfer();
     }
-    
+  }, [isSignedIn, user, hasTransferredDemos, transferDemoLogos, demoAttemptsLeft]);
+
+  useEffect(() => {
     // Check for pending logo data from history selection
     const pendingLogoData = localStorage.getItem('pendingLogoData');
     if (pendingLogoData) {
@@ -181,26 +213,7 @@ export default function Page() {
         localStorage.removeItem('pendingLogoData');
       }
     }
-
-    // Add effect to handle demo logo transfer only if there are demo logos
-    const handleDemoTransfer = async () => {
-      // Only attempt to transfer if user is signed in and there are demo attempts in localStorage
-      if (isSignedIn && user && localStorage.getItem('demoAttempts') !== null && !hasTransferredDemos) {
-        try {
-          await transferDemoLogos({
-            userId: user.id,
-            email: user.primaryEmailAddress?.emailAddress || "",
-          });
-          setHasTransferredDemos(true);
-          localStorage.removeItem('demoAttempts'); // Clear demo attempts after transfer
-        } catch (error) {
-          console.error('Error transferring demo logos:', error);
-        }
-      }
-    };
-
-    handleDemoTransfer();
-  }, [isSignedIn, user, hasTransferredDemos, transferDemoLogos]);
+  }, []);
 
   // Update the generateSingleLogo function to handle single image refresh
   async function generateSingleLogo(frameIndex: number) {

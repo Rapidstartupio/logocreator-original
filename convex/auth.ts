@@ -10,6 +10,17 @@ export const transferDemoLogos = mutation({
     email: v.string(),
   },
   handler: async (ctx, args): Promise<number> => {
+    // Check if user already exists in userAnalytics
+    const existingAnalytics = await ctx.db
+      .query("userAnalytics")
+      .filter(q => q.eq(q.field("userId"), args.userId))
+      .first();
+
+    // If user already exists, they've already had their demos transferred
+    if (existingAnalytics) {
+      return 0;
+    }
+
     // Find all demo logos without a userId (created in the last 24 hours)
     const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
     
@@ -37,46 +48,26 @@ export const transferDemoLogos = mutation({
         .collect();
     }
 
-    // If no logos found to transfer, return early
-    if (demoLogos.length === 0) {
-      console.log('No demo logos found to transfer');
-      return 0;
+    // Update each demo logo with the user's ID if any were found
+    if (demoLogos.length > 0) {
+      for (const logo of demoLogos) {
+        await ctx.db.patch(logo._id, { 
+          userId: args.userId,
+          isDemo: false // Mark as no longer a demo
+        });
+      }
     }
 
-    console.log(`Found ${demoLogos.length} logos to transfer`);
-
-    // Update each demo logo with the user's ID
-    for (const logo of demoLogos) {
-      await ctx.db.patch(logo._id, { 
-        userId: args.userId,
-        isDemo: false // Mark as no longer a demo
-      });
-    }
-
-    // Create or update user analytics
-    const existingAnalytics = await ctx.db
-      .query("userAnalytics")
-      .filter(q => q.eq(q.field("userId"), args.userId))
-      .first();
-
-    if (existingAnalytics) {
-      await ctx.db.patch(existingAnalytics._id, {
-        totalLogosGenerated: existingAnalytics.totalLogosGenerated + demoLogos.length,
-        lastActive: Date.now(),
-        email: args.email,
-        credits: (existingAnalytics.credits || 0) + 5 // Give 5 free credits on sign-up
-      });
-    } else {
-      await ctx.db.insert("userAnalytics", {
-        userId: args.userId,
-        email: args.email,
-        totalLogosGenerated: demoLogos.length,
-        lastActive: Date.now(),
-        lastCompanyName: demoLogos[0]?.companyName || "",
-        lastBusinessType: demoLogos[0]?.businessType || undefined,
-        credits: 5 // Start with 5 free credits
-      });
-    }
+    // Always create user analytics entry for new users, even if no demos to transfer
+    await ctx.db.insert("userAnalytics", {
+      userId: args.userId,
+      email: args.email,
+      totalLogosGenerated: demoLogos.length,
+      lastActive: Date.now(),
+      lastCompanyName: demoLogos[0]?.companyName || "",
+      lastBusinessType: demoLogos[0]?.businessType || undefined,
+      credits: 5 // Start with 5 free credits for new users
+    });
 
     return demoLogos.length;
   }
