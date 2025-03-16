@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/ta
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Skeleton } from "../components/ui/skeleton";
-import { UserIcon, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
+import { UserIcon, ChevronLeft, ChevronRight, Search, X, Download } from "lucide-react";
 import SimpleTest from "./simple-test";
 import TestQuery from "./test-query";
 import Link from "next/link";
@@ -62,6 +62,25 @@ interface PaginationData {
   pageSize: number;
   hasNextPage: boolean;
   hasPreviousPage: boolean;
+}
+
+interface UserStatsResult {
+  success: boolean;
+  error?: string;
+  stats?: {
+    totalUsers: number;
+    activeUsersToday: number;
+    newUsersToday: number;
+    totalLogosGenerated: number;
+  };
+  users?: Array<{
+    id: string;
+    email: string;
+    totalLogosGenerated: number;
+    lastActive: number;
+    isAdmin: boolean;
+    credits: number;
+  }>;
 }
 
 export default function AdminPage() {
@@ -391,11 +410,110 @@ export default function AdminPage() {
     }
   };
   
+  // Function to handle CSV export
+  const handleExportCSV = async () => {
+    try {
+      // Get all users data
+      const userStatsResult = await statsQuery as UserStatsResult;
+      if (!userStatsResult?.success || !userStatsResult.users) {
+        throw new Error("Failed to fetch user data");
+      }
+
+      // Get all logos data
+      const allLogosResult = await allLogosQuery;
+      if (!allLogosResult?.success) {
+        throw new Error("Failed to fetch logos data");
+      }
+
+      // Create a map of user IDs to their logo data
+      const userLogoMap = new Map();
+      allLogosResult.data.forEach(logo => {
+        if (!userLogoMap.has(logo.userId)) {
+          userLogoMap.set(logo.userId, []);
+        }
+        userLogoMap.get(logo.userId).push({
+          companyName: logo.companyName,
+          timestamp: new Date(logo.timestamp).toISOString(),
+          status: logo.status,
+          style: logo.style,
+          layout: logo.layout,
+          businessType: logo.businessType || '',
+          prompt: logo.prompt || '',
+          additionalInfo: logo.additionalInfo || '',
+          generationTime: logo.generationTime || 0,
+          modelUsed: logo.modelUsed || ''
+        });
+      });
+
+      // Combine user and logo data
+      const csvData = userStatsResult.users.map(user => {
+        const userLogos = userLogoMap.get(user.id) || [];
+        return {
+          userId: user.id,
+          email: user.email,
+          totalLogosGenerated: user.totalLogosGenerated,
+          lastActive: new Date(user.lastActive).toISOString(),
+          isAdmin: user.isAdmin ? "Yes" : "No",
+          credits: user.credits,
+          logoCount: userLogos.length,
+          allLogos: JSON.stringify(userLogos)
+        };
+      });
+
+      // Convert to CSV
+      const headers = [
+        "User ID",
+        "Email",
+        "Total Logos Generated",
+        "Last Active",
+        "Is Admin",
+        "Credits",
+        "Logo Count",
+        "All Logos (JSON)"
+      ];
+
+      const csvContent = [
+        headers.join(","),
+        ...csvData.map(row => [
+          row.userId,
+          `"${row.email}"`,
+          row.totalLogosGenerated,
+          row.lastActive,
+          row.isAdmin,
+          row.credits,
+          row.logoCount,
+          `"${row.allLogos.replace(/"/g, '""')}"` // Escape quotes for CSV
+        ].join(","))
+      ].join("\n");
+
+      // Create and download the file
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `logo-creator-users-export-${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Export error:", error);
+      setApiError(error instanceof Error ? error.message : "Failed to export data");
+    }
+  };
+  
   return (
     <div className="admin-container">
       <header className="admin-header">
         <h1 className="admin-title">Admin Dashboard</h1>
         <div className="admin-actions">
+          <Button 
+            variant="outline" 
+            onClick={handleExportCSV}
+            className="gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Export Users
+          </Button>
           <Link href="/admin/connection-fix" className="inline-block">
             <Button variant="outline">Connection Fix Tool</Button>
           </Link>
