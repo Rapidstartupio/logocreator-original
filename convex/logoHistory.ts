@@ -38,18 +38,23 @@ export const save = mutation({
 
     const savedId = await ctx.db.insert("logoHistory", logoData);
 
-    const userAnalytics = await ctx.db
-      .query("userAnalytics")
-      .withIndex("by_user", q => q.eq("userId", identity.subject))
-      .first();
+    try {
+      const userAnalytics = await ctx.db
+        .query("userAnalytics")
+        .withIndex("by_user", q => q.eq("userId", identity.subject))
+        .first();
 
-    if (userAnalytics) {
-      await ctx.db.patch(userAnalytics._id, {
-        totalLogosGenerated: (userAnalytics.totalLogosGenerated || 0) + 1,
-        lastActive: Date.now(),
-        lastCompanyName: args.companyName,
-        lastBusinessType: args.businessType
-      });
+      if (userAnalytics) {
+        await ctx.db.patch(userAnalytics._id, {
+          totalLogosGenerated: (userAnalytics.totalLogosGenerated || 0) + 1,
+          lastActive: Date.now(),
+          lastCompanyName: args.companyName,
+          lastBusinessType: args.businessType
+        });
+      }
+    } catch (error) {
+      // Log the error but don't fail the mutation
+      console.error('Error updating user analytics:', error);
     }
 
     return savedId;

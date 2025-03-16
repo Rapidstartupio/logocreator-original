@@ -110,30 +110,23 @@ export default function Page() {
   const formatImageSrc = (imageData: string): string => {
     if (!imageData) return "/placeholder.svg";
     
-    // Check if the image is already a URL (starts with http or https)
-    if (imageData.startsWith('http://') || imageData.startsWith('https://')) {
-      return imageData;
-    }
-    
-    // Check if it's a base64 string in JSON format (starts with [" and contains 4QC8R)
-    if (imageData.startsWith('["') && imageData.includes('4QC8R')) {
-      try {
-        // Try to extract the base64 data from the string format
-        const cleanedData = imageData.replace(/\[|"|\]/g, '');
-        return `data:image/png;base64,${cleanedData}`;
-      } catch (error) {
-        console.error('Error formatting image data:', error);
-        return '/placeholder.svg'; // Fallback to placeholder
-      }
-    }
-    
-    // If it's already a properly formatted base64 string
+    // If it's already a data URL, return as is
     if (imageData.startsWith('data:image')) {
       return imageData;
     }
     
-    // Assume it's a base64 string without the data:image prefix
-    return `data:image/png;base64,${imageData}`;
+    // If it's a URL (e.g. from Clerk), return as is
+    if (imageData.startsWith('http://') || imageData.startsWith('https://')) {
+      return imageData;
+    }
+    
+    // If it's a base64 string (from Together AI or demo API), add the data URL prefix
+    if (imageData.length > 100) { // Basic check to see if it's a substantial base64 string
+      return `data:image/png;base64,${imageData}`;
+    }
+    
+    // Default to placeholder if we can't determine the format
+    return "/placeholder.svg";
   };
 
   useEffect(() => {
@@ -212,9 +205,17 @@ export default function Page() {
 
   // Update the generateSingleLogo function to handle single image refresh
   async function generateSingleLogo(frameIndex: number) {
-    if (!isSignedIn) return;
+    if (!isSignedIn) {
+      toast({
+        variant: "destructive",
+        title: "Not Signed In",
+        description: "Please sign in to generate logos.",
+      });
+      return;
+    }
 
     setIsLoading(true);
+    const startTime = Date.now();
 
     try {
       const res = await fetch("/api/generate-logo", {
@@ -235,12 +236,35 @@ export default function Page() {
       });
 
       if (res.ok) {
-        const [newImage] = await res.json();
-        setGeneratedImages(prev => {
-          const updated = [...prev];
-          updated[frameIndex] = newImage;
-          return updated;
-        });
+        const { images } = await res.json();
+        if (images && images.length > 0) {
+          // Update the UI with the new image
+          setGeneratedImages(prev => {
+            const updated = [...prev];
+            updated[frameIndex] = images[0]; // Store raw base64
+            return updated;
+          });
+
+          // Save to Convex with raw image data
+          await mutation({
+            companyName,
+            layout: selectedLayout,
+            style: selectedStyle,
+            primaryColor: selectedPrimaryColor,
+            backgroundColor: selectedBackgroundColor,
+            additionalInfo: additionalInfo || undefined,
+            images: [images[0]], // Pass raw base64
+            businessType: additionalInfo || undefined,
+            prompt: `${companyName} logo in ${selectedStyle} style with ${selectedLayout} layout`,
+            styleDetails: undefined,
+            layoutDetails: undefined,
+            numberOfImages: 1,
+            isDemo: false,
+            generationTime: Date.now() - startTime,
+            modelUsed: "dall-e-3",
+            status: "success"
+          });
+        }
         // Reload user data to update credits display
         await user?.reload();
       } else {
@@ -273,77 +297,23 @@ export default function Page() {
 
   // Update the main generateLogo function
   async function generateLogo() {
-    if (!isSignedIn) {
-      // Check demo attempts
-      const attempts = parseInt(localStorage.getItem('demoAttempts') || '5');
-      if (attempts <= 0) {
-        toast({
-          title: "Demo limit reached",
-          description: "You've used all your demo attempts. Sign in to continue generating logos and get more credits!",
-        });
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-        const res = await fetch('/api/demo/generate-logo', {
-          method: "POST",
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            companyName,
-            selectedLayout,
-            selectedStyle,
-            selectedPrimaryColor,
-            selectedBackgroundColor,
-            additionalInfo,
-            numberOfImages: parseInt(numberOfImages),
-          }),
-        });
-
-        if (res.ok) {
-          const images = await res.json();
-          setGeneratedImages(images);
-          
-          // Decrement and update demo attempts
-          const remainingAttempts = attempts - 1;
-          localStorage.setItem('demoAttempts', remainingAttempts.toString());
-          setDemoAttemptsLeft(remainingAttempts);
-          
-          // Mark that user has generated a logo
-          localStorage.setItem('hasGeneratedLogo', 'true');
-          
-          if (remainingAttempts <= 2) {
-            toast({
-              title: `${remainingAttempts} demo ${remainingAttempts === 1 ? 'attempt' : 'attempts'} left`,
-              description: "Sign in to get more credits and continue generating logos!",
-            });
-          }
-        } else {
-          const errorText = await res.text();
-          toast({
-            variant: "destructive",
-            title: "Error generating logo",
-            description: errorText || "Failed to generate demo logo",
-          });
-        }
-      } catch (error) {
-        console.error('Error generating logo:', error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to connect to the server",
-        });
-      } finally {
-        setIsLoading(false);
-      }
+    // Check if user is signed in or has demo attempts left
+    if (!isSignedIn && demoAttemptsLeft <= 0) {
+      toast({
+        variant: "destructive",
+        title: "No Demo Attempts Left",
+        description: "Please sign in to continue generating logos.",
+      });
       return;
     }
 
+    setIsLoading(true);
+    const startTime = Date.now();
+
     try {
-      setIsLoading(true);
-      const res = await fetch("/api/generate-logo", {
+      // Use demo API if not signed in
+      const endpoint = isSignedIn ? "/api/generate-logo" : "/api/demo/generate-logo";
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: {
           'Content-Type': 'application/json',
@@ -361,23 +331,52 @@ export default function Page() {
       });
 
       if (res.ok) {
-        const images = await res.json();
-        setGeneratedImages(images);
-        
-        // Save to Convex
-        await mutation({
-          companyName,
-          layout: selectedLayout,
-          style: selectedStyle,
-          primaryColor: selectedPrimaryColor,
-          backgroundColor: selectedBackgroundColor,
-          additionalInfo,
-          images,
-        });
+        const { images } = await res.json();
+        if (images && images.length > 0) {
+          // Store raw base64 strings
+          setGeneratedImages(images);
+          setSelectedImageIndex(0);
 
-        // Mark that user has generated a logo
-        localStorage.setItem('hasGeneratedLogo', 'true');
-        
+          // Save to Convex with raw base64 data
+          await mutation({
+            companyName,
+            layout: selectedLayout,
+            style: selectedStyle,
+            primaryColor: selectedPrimaryColor,
+            backgroundColor: selectedBackgroundColor,
+            additionalInfo: additionalInfo || undefined,
+            images, // Pass raw base64
+            businessType: additionalInfo || undefined,
+            prompt: `${companyName} logo in ${selectedStyle} style with ${selectedLayout} layout`,
+            styleDetails: undefined,
+            layoutDetails: undefined,
+            numberOfImages: parseInt(numberOfImages),
+            isDemo: !isSignedIn,
+            generationTime: Date.now() - startTime,
+            modelUsed: "dall-e-3",
+            status: "success"
+          });
+
+          // Update demo attempts if not signed in
+          if (!isSignedIn) {
+            const newAttempts = demoAttemptsLeft - 1;
+            setDemoAttemptsLeft(newAttempts);
+            localStorage.setItem('demoAttempts', newAttempts.toString());
+            
+            if (newAttempts <= 2) {
+              toast({
+                title: "Demo Attempts Remaining",
+                description: `You have ${newAttempts} demo attempts left. Sign in to continue generating logos.`,
+              });
+            }
+          }
+
+          // Mark as not first generation
+          if (isFirstGeneration) {
+            setIsFirstGeneration(false);
+            localStorage.setItem('hasGeneratedLogo', 'true');
+          }
+        }
         // Reload user data to update credits display
         await user?.reload();
       } else {
@@ -715,8 +714,9 @@ export default function Page() {
                               </Button>
                               <Button 
                                 size="icon" 
-                                onClick={() => generateSingleLogo(selectedImageIndex)} 
                                 variant="secondary"
+                                onClick={() => generateSingleLogo(selectedImageIndex)}
+                                disabled={isLoading}
                               >
                                 <Spinner loading={isLoading}>
                                   <RefreshCwIcon />

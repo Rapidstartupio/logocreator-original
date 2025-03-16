@@ -19,10 +19,10 @@ export default function Page() {
             footerActionLink: "text-indigo-500 hover:text-indigo-400",
           },
         }}
-        afterSignInUrl="/dashboard"
+        redirectUrl="/dashboard"
         routing="path"
         signUpUrl="/sign-up"
       />
     </div>
   );
-} 
+}

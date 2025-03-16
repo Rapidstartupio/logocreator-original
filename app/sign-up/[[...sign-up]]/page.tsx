@@ -21,10 +21,13 @@ export default function Page() {
             footerActionLink: "text-indigo-500 hover:text-indigo-400",
           },
         }}
-        afterSignUpUrl="/dashboard"
+        redirectUrl="/dashboard"
         routing="path"
         signInUrl="/sign-in"
       />
+
+      {/* Note: The Clerk SignUp component doesn't have afterSignUpComplete or signUpUrl props */}
+      {/* We need to implement a different approach to handle post-signup actions */}
     </div>
   );
 }

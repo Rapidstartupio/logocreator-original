@@ -1,7 +1,7 @@
-const authConfig = {
+export default {
   providers: [
     {
-      domain: process.env.NEXT_PUBLIC_CLERK_DOMAIN || "https://verified-flea-40.clerk.accounts.dev",
+      domain: "verified-flea-40.clerk.accounts.dev",
       applicationID: "convex",
     },
   ],
@@ -16,5 +16,3 @@ const authConfig = {
     },
   ],
 };
-
-export default authConfig;

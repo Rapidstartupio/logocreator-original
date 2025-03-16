@@ -3,7 +3,7 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "@/app/components/ui/tooltip";
 import { Info } from "lucide-react";
 
 export default function InfoTooltip({ content }: { content: string }) {
