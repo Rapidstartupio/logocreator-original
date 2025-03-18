@@ -66,7 +66,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section className="container mx-auto px-4 py-20">
+      <section className="container mx-auto px-4 py-20 hidden">
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold text-white mb-6">
             Get A Stunning Logo You&apos;ll Love
@@ -110,7 +110,7 @@ export default function LandingPage() {
       </section>
 
       {/* Why Use LogoX Section */}
-      <section className="container mx-auto px-4 py-20 border-t border-gray-800">
+      <section className="container mx-auto px-4 py-20 border-t border-gray-800 hidden">
         <h2 className="text-4xl font-bold text-white text-center mb-12">Why use LogoX?</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
           <div className="text-center">
@@ -138,7 +138,7 @@ export default function LandingPage() {
       </section>
 
       {/* How It Works Section */}
-      <section className="container mx-auto px-4 py-20 border-t border-gray-800">
+      <section className="container mx-auto px-4 py-20 border-t border-gray-800 hidden">
         <h2 className="text-4xl font-bold text-white text-center mb-6">How It Works</h2>
         <p className="text-gray-400 text-xl text-center max-w-4xl mx-auto mb-16">
           Our AI-powered logo generator will help you launch your own unique logo fast, easy and free of charge. Our AI combines creativity and 
@@ -181,7 +181,7 @@ export default function LandingPage() {
       </section>
 
       {/* FAQ Section */}
-      <section className="container mx-auto px-4 py-20 border-t border-gray-800">
+      <section className="container mx-auto px-4 py-20 border-t border-gray-800 hidden">
         <h2 className="text-4xl font-bold text-white text-center mb-12">Frequently Asked Questions</h2>
         <div className="max-w-3xl mx-auto">
           <Accordion type="single" collapsible className="space-y-4">
