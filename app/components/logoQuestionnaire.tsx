@@ -156,7 +156,7 @@ export default function LogoQuestionnaire() {
         const data = await res.json()
         setFormData(prev => ({
           ...prev,
-          generatedLogoUrl: formatImageSrc(data[0])
+          generatedLogoUrl: formatImageSrc(data.images[0])
         }))
         setShowResult(true)
       } else {
